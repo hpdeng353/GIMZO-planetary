@@ -283,6 +283,27 @@ OPT     += -DUSE_MPI_IN_PLACE
 ##      linked via the above FFTW2_HOME=/home/phopkins/fftw (where the libraries are installed)
 endif
 
+ifeq ($(SYSTYPE),"h100")
+# H100 cluster: GNU toolchain + OpenMPI + module-provided HDF5/GSL.
+# Expects HDF5_ROOT and GSL_ROOT in the environment (build_h100.sh sets them).
+CC       =  mpicc
+CXX      =  mpiCC
+FC	 =  mpif90
+OPTIMIZE = -O3 -Wall -g
+GMP_INCL = #
+GMP_LIBS = #
+MKL_INCL = #
+MKL_LIBS = #
+GSL_INCL = -I$(GSL_ROOT)/include
+GSL_LIBS = -L$(GSL_ROOT)/lib
+FFTW_INCL= #
+FFTW_LIBS= #
+HDF5INCL = -I$(HDF5_ROOT)/include -DH5_USE_16_API
+HDF5LIB  = -L$(HDF5_ROOT)/lib -lhdf5 -lz
+MPICHLIB = #
+## modules to load: gcc openmpi hdf5 gsl (see build_h100.sh)
+endif
+
 ifeq ($(SYSTYPE),"daint")
 CC       =  cc
 CXX      =  CC

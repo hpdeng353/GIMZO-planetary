@@ -13,7 +13,7 @@
 
 
 #SYSTYPE="Stampede"
-SYSTYPE="shanhe"
+SYSTYPE ?= "shanhe"
 #SYSTYPE="MacBookPro"
 #SYSTYPE="odyssey"
 #SYSTYPE="SciNet"
