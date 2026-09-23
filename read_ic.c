@@ -234,7 +234,12 @@ void read_ic(char *fname)
     }
     
     for(i = 0; i < N_gas; i++)
+    {
         SphP[i].InternalEnergyPred = SphP[i].InternalEnergy = DMAX(All.MinEgySpec, SphP[i].InternalEnergy);
+#if defined(MOONRELAX) && defined(EOS_ANEOS)
+        SphP[i].RelaxEntropy0 = NAN; /* isentropic pin lazily adopts the pristine entropy on the first force evaluation; not persisted in snapshots */
+#endif
+    }
     
     MPI_Barrier(MPI_COMM_WORLD);
     

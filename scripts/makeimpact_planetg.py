@@ -476,6 +476,7 @@ def write_params(template: Path, params_path: Path, ic_path: Path, time_max: flo
         "RelaxUntil": "0",
         "SphericalRelaxUntil": "0",
         "SphericalRelaxReleaseDuration": "0",
+        "RelaxIsentropic": "0",
     }
     lines = template.read_text(encoding="utf-8").splitlines()
     written = set()

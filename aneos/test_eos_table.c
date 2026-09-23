@@ -13,6 +13,7 @@
 
 #include "eos_table.h"
 
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,6 +114,121 @@ int main(int argc, char **argv)
             }
         }
         printf("  material %u: %d x %d grid OK\n", mid2, NR, NU);
+    }
+
+    /* Entropy-inversion round trip: sample (rho,u) strictly inside the grid,
+     * take the interpolated entropy, and require eos_table_invert_energy to
+     * recover u. Both paths interpolate the same stored float32 nodes in
+     * double, so the round trip should be near machine precision; the loose
+     * tolerance guards against logic errors (wrong row/stride/clamp), not
+     * float32 noise. */
+    printf("entropy inversion round trip ...\n");
+    for (uint32_t i = 0; i < numMaterials; ++i)
+    {
+        uint32_t mid2 = eos_table_material_id(table, i);
+        if (!eos_table_has_entropy(table, mid2))
+        {
+            double uDummy = 0.0;
+            int st = eos_table_invert_energy(table, 1.0, 1.0, mid2, &uDummy);
+            if (st != EOS_TABLE_ENTROPY_UNAVAILABLE)
+            {
+                printf("  FAIL material %u: inversion without entropy returned %s\n",
+                       mid2, eos_table_status_string(st));
+                ++failures;
+            }
+            continue;
+        }
+        double rMin, rMax, eMin, eMax;
+        eos_table_bounds(table, mid2, &rMin, &rMax, &eMin, &eMax);
+        int native = eos_table_is_native(table, mid2);
+        const int NR = 20, NU = 20;
+        double worstRel = 0.0;
+        int skipped = 0;
+        for (int ir = 0; ir < NR; ++ir)
+        {
+            double rho = exp(log(rMin) + (log(rMax) - log(rMin)) * (ir + 0.5) / NR);
+            /* The hot low-density vapor corner of these tables has a
+             * non-monotonic entropy column S(u): the same entropy occurs at
+             * several energies, so the inverse (which, like sphexa's
+             * invertEnergy, returns the lowest bracketing u) is genuinely
+             * ambiguous there. S(u) at fixed rho is piecewise linear between
+             * table nodes, so a dense profile pinpoints the wiggles; only
+             * require the round trip where S(u) exceeds every value below. */
+            const int ND = 1024;
+            double uDense[1024], sDense[1024];
+            for (int id = 0; id < ND; ++id)
+            {
+                uDense[id] = native ? eMin + (eMax - eMin) * id / (ND - 1)
+                                    : exp(log(eMin) + (log(eMax) - log(eMin)) * id / (ND - 1));
+                EosTableState sd = eos_table_evaluate(table, rho, uDense[id], mid2, 1);
+                sDense[id] = (sd.hasEntropy && isfinite(sd.entropy)) ? sd.entropy : -DBL_MAX;
+            }
+            for (int iu = 0; iu < NU; ++iu)
+            {
+                double u = native ? eMin + (eMax - eMin) * (iu + 0.5) / NU
+                                  : exp(log(eMin) + (log(eMax) - log(eMin)) * (iu + 0.5) / NU);
+                EosTableState s = eos_table_evaluate(table, rho, u, mid2, 1);
+                if (!s.hasEntropy || s.status != EOS_TABLE_SUCCESS)
+                    continue;
+                double sMaxBelow = -DBL_MAX;
+                for (int id = 0; id < ND && uDense[id] < u; ++id)
+                    if (sDense[id] > sMaxBelow) sMaxBelow = sDense[id];
+                if (!(s.entropy > sMaxBelow + 1e-9 * fabs(s.entropy)))
+                {
+                    ++skipped;
+                    continue;
+                }
+                double uBack = 0.0;
+                int st = eos_table_invert_energy(table, rho, s.entropy, mid2, &uBack);
+                if (st != EOS_TABLE_SUCCESS)
+                {
+                    printf("  FAIL material %u at rho=%e u=%e: inversion status=%s\n",
+                           mid2, rho, u, eos_table_status_string(st));
+                    ++failures;
+                    continue;
+                }
+                double scale = fabs(u);
+                double absFloor = 1e-9 * (fabs(eMin) + fabs(eMax));
+                if (scale < absFloor) scale = absFloor;
+                double rel = fabs(uBack - u) / scale;
+                if (rel > worstRel) worstRel = rel;
+                if (rel > 1e-4)
+                {
+                    printf("  FAIL material %u at rho=%e u=%e: round trip u_back=%e (rel err %g)\n",
+                           mid2, rho, u, uBack, rel);
+                    ++failures;
+                    if (failures > 20) { printf("too many failures, aborting scan\n"); goto done; }
+                }
+            }
+        }
+        printf("  material %u: round trip worst relative error %.3e (%d non-unique-entropy points skipped)\n",
+               mid2, worstRel, skipped);
+    }
+
+    /* code-unit wrapper: evaluate_code -> invert_energy_code round trip */
+    {
+        EosTableUnits units;
+        if (eos_table_units_cgs(&units, 0.36838, 1.0e10) == 0)
+        {
+            for (uint32_t i = 0; i < numMaterials; ++i)
+            {
+                uint32_t mid2 = eos_table_material_id(table, i);
+                if (!eos_table_has_entropy(table, mid2)) continue;
+                double rMin, rMax, eMin, eMax;
+                eos_table_bounds(table, mid2, &rMin, &rMax, &eMin, &eMax);
+                double rhoC = exp(0.5 * (log(rMin) + log(rMax))) / units.densityToTable;
+                double uC = (eos_table_is_native(table, mid2) ? 0.5 * (eMin + eMax)
+                            : exp(0.5 * (log(eMin) + log(eMax)))) / units.energyToTable;
+                EosTableState s = eos_table_evaluate_code(table, rhoC, uC, mid2, 1, units);
+                double uBack = 0.0;
+                int st = eos_table_invert_energy_code(table, rhoC, s.entropy, mid2, units, &uBack);
+                double rel = fabs(uBack - uC) / fabs(uC);
+                printf("  material %u code-units wrapper: rel err %.3e (status %s)\n",
+                       mid2, rel, eos_table_status_string(st));
+                if (st != EOS_TABLE_SUCCESS || !(rel < 1e-6) || !isfinite(uBack))
+                    ++failures;
+            }
+        }
     }
 
 done:

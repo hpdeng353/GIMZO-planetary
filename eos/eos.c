@@ -141,6 +141,63 @@ else
     return press;
 }
 
+#if defined(MOONRELAX) && defined(EOS_ANEOS)
+/* Isentropic relaxation pin (port of SPH-EXA's relaxIsentropic): while the
+ * relaxation window is active, hold each gas particle on its initial
+ * isentrope. On the first call the reference entropy adopts the table entropy
+ * of the current (rho,u) state (NaN = uninitialized; retried next step when
+ * the state is not located); afterwards InternalEnergy/InternalEnergyPred are
+ * reset to u(rho, s0) from the table, immediately before the pressure
+ * evaluation in the density loop. Energy conservation is intentionally
+ * violated -- relaxation runs only, never production. */
+void moonrelax_isentropic_pin(int i)
+{
+    if(All.RelaxIsentropic == 0 || All.RelaxTimescale <= 0.0 || All.Time >= All.RelaxUntil)
+        return;
+
+    int imat = SphP[i].imat;
+    if(imat < 0 || imat >= EosTableSpxNumMats)
+        return; /* get_pressure() below aborts on an unmapped imat anyway */
+
+    double rho = Particle_density_for_energy_i(i);
+
+    if(isnan(SphP[i].RelaxEntropy0))
+    {
+        EosTableState st = eos_table_evaluate_code(EosTableSpx, rho, SphP[i].InternalEnergyPred,
+                                                   (uint32_t)EosTableSpxMatId[imat], 1, EosTableSpxUnits);
+        int located = (st.status == EOS_TABLE_SUCCESS || st.status == EOS_TABLE_DENSITY_BELOW_RANGE ||
+                       st.status == EOS_TABLE_DENSITY_ABOVE_RANGE || st.status == EOS_TABLE_ENERGY_BELOW_RANGE ||
+                       st.status == EOS_TABLE_ENERGY_ABOVE_RANGE);
+        if(st.hasEntropy && located)
+            SphP[i].RelaxEntropy0 = st.entropy;
+        else if(!st.hasEntropy && located)
+        {
+            printf("MOONRELAX: RelaxIsentropic requires an EOS table with entropy "
+                   "(task=%d particle=%d imat=%d)\n", ThisTask, i, imat);
+            endrun(1);
+        }
+        return; /* u untouched on the initialization step */
+    }
+
+    double uPinned = SphP[i].InternalEnergy;
+    int status = eos_table_invert_energy_code(EosTableSpx, rho, SphP[i].RelaxEntropy0,
+                                              (uint32_t)EosTableSpxMatId[imat], EosTableSpxUnits, &uPinned);
+    if(status == EOS_TABLE_UNKNOWN_MATERIAL || status == EOS_TABLE_ENTROPY_UNAVAILABLE ||
+       status == EOS_TABLE_INVALID_TABLE_STATE)
+    {
+        printf("MOONRELAX: isentropic pin failed: task=%d particle=%d imat=%d rho=%g s0=%g status=%s\n",
+               ThisTask, i, imat, rho, (double)SphP[i].RelaxEntropy0, eos_table_status_string(status));
+        endrun(1);
+    }
+    if(status != EOS_TABLE_INVALID_INPUT)
+    {
+        SphP[i].InternalEnergy     = uPinned;
+        SphP[i].InternalEnergyPred = uPinned;
+    }
+    /* invalid input (e.g. non-positive density) keeps its current energy */
+}
+#endif
+
 
 
 

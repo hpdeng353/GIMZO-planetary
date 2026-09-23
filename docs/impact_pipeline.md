@@ -63,6 +63,21 @@ four parameters (all zero = disabled, e.g. for the impact run):
   `[SphericalRelaxUntil, SphericalRelaxUntil + duration]` the tangential kick
   is restored with the cubic smoothstep `w = 3s^2 - 2s^3`. Velocity is not
   reprojected and is never scaled by `w`.
+- `RelaxIsentropic` (0/1) — fixed-entropy relaxation, a port of SPH-EXA's
+  `--relax-isentropic`. While `Time < RelaxUntil`, every particle's internal
+  energy is reset to `u(rho, s0)` from the EOS table before the pressure
+  evaluation, where `s0` is the particle's table entropy in the pristine IC
+  (adopted lazily on the first force evaluation, stored in
+  `SphP.RelaxEntropy0`). This holds the constructed entropy profile exactly
+  while positions/densities settle; energy conservation is intentionally
+  violated, so it must stay 0 for production/impact runs. Requires an EOS
+  table with entropy (both materials in `rock_planet_aneos_62_63.spheos` have
+  it). Unlike SPH-EXA, `s0` is not written to snapshots: a restarted
+  relaxation re-adopts `s0` from the current state, which is equivalent as
+  long as the state was pinned. Implementation: `moonrelax_isentropic_pin()`
+  in `eos/eos.c`, called in the density loop just before `get_pressure()`
+  (`hydro/density.c`); entropy inversion `eos_table_invert_energy()` is a C
+  port of SPH-EXA's `TabulatedEos::invertEnergy`.
 
 Implementation: `moonrelax_modify_kick()` in `run.c`, called from
 `do_the_kick` (`kicks.c`) after the momentum kick `dp` is computed and before

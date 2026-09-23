@@ -94,17 +94,19 @@ void begrun(void)
       relax_error = 4;
     if(All.SphericalRelaxUntil + All.SphericalRelaxReleaseDuration > All.RelaxUntil)
       relax_error = 5;
+    if(All.RelaxIsentropic != 0 && All.RelaxIsentropic != 1)
+      relax_error = 6;
     if(relax_error)
       {
         if(ThisTask == 0)
           {
             printf("MOONRELAX: invalid relaxation parameters: RelaxTimescale=%g RelaxUntil=%g "
-                   "SphericalRelaxUntil=%g SphericalRelaxReleaseDuration=%g (error %d)\n",
+                   "SphericalRelaxUntil=%g SphericalRelaxReleaseDuration=%g RelaxIsentropic=%d (error %d)\n",
                    All.RelaxTimescale, All.RelaxUntil, All.SphericalRelaxUntil,
-                   All.SphericalRelaxReleaseDuration, relax_error);
+                   All.SphericalRelaxReleaseDuration, All.RelaxIsentropic, relax_error);
             printf("MOONRELAX: rules: all values finite and >= 0; RelaxUntil or a spherical stage "
                    "require RelaxTimescale > 0; release duration > 0 requires SphericalRelaxUntil > 0; "
-                   "the release window must end no later than RelaxUntil.\n");
+                   "the release window must end no later than RelaxUntil; RelaxIsentropic is 0 or 1.\n");
           }
         endrun(1);
       }
@@ -115,6 +117,9 @@ void begrun(void)
         if(All.SphericalRelaxUntil > 0.0)
           printf(", spherical stage until t=%g, release duration %g",
                  All.SphericalRelaxUntil, All.SphericalRelaxReleaseDuration);
+        if(All.RelaxIsentropic)
+          printf(", ISENTROPIC pin: u reset to u(rho, s0) from the EOS table while t < %g",
+                 All.RelaxUntil);
         printf("\n\n");
       }
   }
@@ -221,6 +226,7 @@ void begrun(void)
       All.RelaxUntil = all.RelaxUntil;
       All.SphericalRelaxUntil = all.SphericalRelaxUntil;
       All.SphericalRelaxReleaseDuration = all.SphericalRelaxReleaseDuration;
+      All.RelaxIsentropic = all.RelaxIsentropic;
 #endif
         
         /* allow softenings to be modified during the run */
@@ -1099,6 +1105,10 @@ void read_parameter_file(char *fname)
       strcpy(tag[nt], "SphericalRelaxReleaseDuration");
       addr[nt] = &All.SphericalRelaxReleaseDuration;
       id[nt++] = REAL;
+
+      strcpy(tag[nt], "RelaxIsentropic");
+      addr[nt] = &All.RelaxIsentropic;
+      id[nt++] = INT;
 #endif
 
 

@@ -846,6 +846,113 @@ EosTableState eos_table_evaluate(const EosTable *table, double rho, double u,
 }
 
 /* ------------------------------------------------------------------ */
+/* entropy inversion (port of sphexa's TabulatedEos::invertEnergy)     */
+/* ------------------------------------------------------------------ */
+
+/* Node entropy at fractional density row (ir, fr) and energy index iu. */
+static double node_entropy_at(const float *entropy, unsigned nU, size_t ir, size_t iu, double fr)
+{
+    double lo = (double) entropy[ir * (size_t) nU + iu];
+    double hi = (double) entropy[(ir + 1) * (size_t) nU + iu];
+    return lerpd(lo, hi, fr);
+}
+
+int eos_table_invert_energy(const EosTable *table, double rho, double entropyTarget,
+                            uint32_t materialId, double *uOut)
+{
+    const MaterialView *m = find_material(table, materialId);
+    if (!m) return EOS_TABLE_UNKNOWN_MATERIAL;
+    if (!m->hasEntropy || !m->entropy) return EOS_TABLE_ENTROPY_UNAVAILABLE;
+    if (!uOut) return EOS_TABLE_INVALID_INPUT;
+    if (!(rho > 0.0) || !isfinite(rho) || !isfinite(entropyTarget)) return EOS_TABLE_INVALID_INPUT;
+
+    const double *rhoAxis = m->logRho;
+    const double *uAxis   = m->energyAxis;
+    unsigned nU           = m->nU;
+    unsigned uStride      = m->uStride;
+
+    int status = EOS_TABLE_SUCCESS;
+    double logRho = log(rho);
+    if (logRho < rhoAxis[0]) status = EOS_TABLE_DENSITY_BELOW_RANGE;
+    else if (logRho > rhoAxis[m->nRho - 1]) status = EOS_TABLE_DENSITY_ABOVE_RANGE;
+    logRho = clampd(logRho, rhoAxis[0], rhoAxis[m->nRho - 1]);
+
+    size_t ir = lower_cell(rhoAxis, m->nRho, logRho);
+    double fr = (logRho - rhoAxis[ir]) / (rhoAxis[ir + 1] - rhoAxis[ir]);
+    if (m->nativeGrid)
+    {
+        /* native grids interpolate axes linearly in rho; use the clamped
+         * density so out-of-range states sit exactly on the boundary row */
+        double rho0 = exp(rhoAxis[ir]), rho1 = exp(rhoAxis[ir + 1]);
+        fr = clampd((exp(logRho) - rho0) / (rho1 - rho0), 0.0, 1.0);
+    }
+
+    /* At fixed density the bilinear entropy interpolant is piecewise linear in
+     * the energy coordinate, so inversion inside a bracketing segment is
+     * exact. Physically ds/du = 1/T > 0, but a tabulated column is not
+     * guaranteed to be strictly monotonic (ANEOS phase regions), so scan for
+     * a bracketing segment instead of assuming one. */
+    size_t segment = nU; /* sentinel: not found */
+    for (size_t j = 0; j + 1 < nU; ++j)
+    {
+        double sa = node_entropy_at(m->entropy, nU, ir, j, fr);
+        double sb = node_entropy_at(m->entropy, nU, ir, j + 1, fr);
+        if (sa == sb) continue;
+        double sLo = lerpd(sa, sb, -1e-6);
+        double sHi = lerpd(sa, sb, 1.0 + 1e-6);
+        if ((sLo <= sHi && entropyTarget >= sLo && entropyTarget <= sHi) ||
+            (sHi < sLo && entropyTarget >= sHi && entropyTarget <= sLo))
+        {
+            segment = j;
+            break;
+        }
+    }
+
+    double energyCoordinate;
+    if (segment < nU)
+    {
+        double sa = node_entropy_at(m->entropy, nU, ir, segment, fr);
+        double sb = node_entropy_at(m->entropy, nU, ir, segment + 1, fr);
+        double fu = clampd((entropyTarget - sa) / (sb - sa), 0.0, 1.0);
+        energyCoordinate = lerpd(virtual_energy(uAxis, uStride, ir, segment, fr),
+                                 virtual_energy(uAxis, uStride, ir, segment + 1, fr), fu);
+    }
+    else
+    {
+        /* Target outside the tabulated entropy column: clamp to the matching
+         * column end (mirrors the energy clamping in eos_table_evaluate). */
+        double sFirst = node_entropy_at(m->entropy, nU, ir, 0, fr);
+        double sLast  = node_entropy_at(m->entropy, nU, ir, nU - 1, fr);
+        if ((sFirst <= sLast && entropyTarget <= sFirst) || (sLast < sFirst && entropyTarget >= sFirst))
+            energyCoordinate = virtual_energy(uAxis, uStride, ir, 0, fr);
+        else if ((sFirst <= sLast && entropyTarget >= sLast) || (sLast < sFirst && entropyTarget <= sLast))
+            energyCoordinate = virtual_energy(uAxis, uStride, ir, nU - 1, fr);
+        else
+            /* inside the column span without a bracketing segment (degenerate
+             * plateaus): nearest end */
+            energyCoordinate = fabs(entropyTarget - sFirst) <= fabs(entropyTarget - sLast)
+                                   ? virtual_energy(uAxis, uStride, ir, 0, fr)
+                                   : virtual_energy(uAxis, uStride, ir, nU - 1, fr);
+    }
+
+    double u = m->nativeGrid ? energyCoordinate : exp(energyCoordinate);
+    if (!isfinite(u)) return EOS_TABLE_INVALID_TABLE_STATE;
+    *uOut = u;
+    return status;
+}
+
+int eos_table_invert_energy_code(const EosTable *table, double rho, double entropyTargetCode,
+                                 uint32_t materialId, EosTableUnits units, double *uOutCode)
+{
+    double uTable = 0.0;
+    int status = eos_table_invert_energy(table, rho * units.densityToTable,
+                                         entropyTargetCode / units.entropyFromTable,
+                                         materialId, &uTable);
+    *uOutCode = uTable / units.energyToTable;
+    return status;
+}
+
+/* ------------------------------------------------------------------ */
 /* unit conversion                                                     */
 /* ------------------------------------------------------------------ */
 

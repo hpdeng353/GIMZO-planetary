@@ -94,7 +94,7 @@ relax_one() {
     local rundir=$WORK/relax_$name
     mkdir -p "$rundir"
     # params: copy the noon1 template, drop keys we override, append overrides
-    grep -vE "^(InitCondFile|OutputDir|TimeMax|TimeBetSnapshot|EosTable|RelaxTimescale|RelaxUntil|SphericalRelaxUntil|SphericalRelaxReleaseDuration)[[:space:]]" \
+    grep -vE "^(InitCondFile|OutputDir|TimeMax|TimeBetSnapshot|EosTable|RelaxTimescale|RelaxUntil|SphericalRelaxUntil|SphericalRelaxReleaseDuration|RelaxIsentropic)[[:space:]]" \
         impact-out/init/noon1.params > "$rundir/relax.params"
     cat >> "$rundir/relax.params" <<EOF
 InitCondFile                       ${ic%.hdf5}
@@ -106,6 +106,7 @@ RelaxTimescale                     0.1
 RelaxUntil                         2.0
 SphericalRelaxUntil                1.0
 SphericalRelaxReleaseDuration      0.5
+RelaxIsentropic                    1
 EOF
     cat > "$rundir/relax.slurm" <<EOF
 #!/usr/bin/env bash

@@ -110,6 +110,21 @@ EosTableState eos_table_evaluate_code(const EosTable *table, double rho, double 
                                       uint32_t materialId, int requestEntropy,
                                       EosTableUnits units);
 
+/* Entropy inversion at fixed density (port of sphexa's
+ * TabulatedEos::invertEnergy): find the specific energy whose bilinear
+ * entropy interpolant at (rho) equals entropyTarget. Density outside the
+ * axis is clamped (status reflects it); entropy outside the tabulated
+ * column clamps to the matching column end, mirroring the energy clamping
+ * in eos_table_evaluate(). All quantities in table units (cgs); the
+ * resulting u is returned via *uOut. Returns an EosTableStatus. */
+int eos_table_invert_energy(const EosTable *table, double rho, double entropyTarget,
+                            uint32_t materialId, double *uOut);
+
+/* Code-unit wrapper: rho and entropyTargetCode in code units, result via
+ * *uCodeOut in code specific energy. */
+int eos_table_invert_energy_code(const EosTable *table, double rho, double entropyTargetCode,
+                                 uint32_t materialId, EosTableUnits units, double *uCodeOut);
+
 const char *eos_table_status_string(int status);
 
 #ifdef __cplusplus

@@ -1058,6 +1058,7 @@ extern struct global_data_all_processes
   double RelaxUntil;                    /*!< drag is applied while Time < RelaxUntil */
   double SphericalRelaxUntil;           /*!< radial-constraint (spherical) stage ends at this time; 0 disables it */
   double SphericalRelaxReleaseDuration; /*!< smoothstep release of tangential acceleration after the spherical stage */
+  int    RelaxIsentropic;               /*!< 1 = pin every particle to its initial isentrope (u reset to u(rho,s0)) while Time < RelaxUntil; port of SPH-EXA --relax-isentropic */
 #endif
 #ifdef SPHAV_ARTIFICIAL_CONDUCTIVITY
   double ArtCondConstant;
@@ -1657,7 +1658,10 @@ extern struct sph_particle_data
 #endif
 #if defined(MOON) || defined(READ_IMAT)
     int imat;
-#endif    
+#endif
+#if defined(MOONRELAX) && defined(EOS_ANEOS)
+    MyFloat RelaxEntropy0;     /*!< reference specific entropy for isentropic relaxation (NaN = uninitialized); lazily adopted from the pristine state on the first force evaluation; not persisted in snapshots */
+#endif
 #ifdef EOS_CARRIES_TEMPERATURE
     MyFloat Temperature;                         /* temperature */
 #endif
