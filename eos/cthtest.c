@@ -6,7 +6,6 @@
 #include <gsl/gsl_math.h>
 #include "../allvars.h"
 #include "../proto.h"
-#include "../maneos/maneos.h"
 /* Routines for gas equation-of-state terms (collects things like calculation of gas pressure)
  * This file was written by Phil Hopkins (phopkins@caltech.edu) for GIZMO.
  */
@@ -89,67 +88,6 @@ double get_pressure(int i)
 
 #endif
 
-#ifdef EOS_MANEOS
-    if (SphP[i].InternalEnergyPred <2.0e-3)
-    {
-      SphP[i].InternalEnergy=2.0e-3;
-      SphP[i].InternalEnergyPred=2.0e-3;
-      }
-
-
-    /*    double entropy, cv,dpdt,dpdrho,fkros,rhol,rhoh,ion;
-    int iPhase, material;
-
-    if (SphP[i].imat==2)
-    {
-        callaneos(SphP[i].Temperature, rhotemp, SphP[i].imat, &press, &SphP[i].InternalEnergyPred, &entropy, &cv, &dpdt, &dpdrho, &fkros, &SphP[i].SoundSpeed, &iPhase, &rhol, &rhoh, &ion);
-        SphP[i].eosgamma=
-        } */       
-
-    //    utemp =SphP[i].InternalEnergyPred;
-    //    if(rhotemp<3e-2) rhotemp=3e-2;
-
-    /*
-    double rhotemp, utemp, Cv;
-    rhotemp=Particle_density_for_energy_i(i);
-    //    if(SphP[i].imat==0)ANEOSInterpolateRhoU(Mattable[SphP[i].imat], rhotemp, SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Temperature, &SphP[i].Entropy, &SphP[i].eospsi, &SphP[i].eosgamma);
-    if(SphP[i].imat==1)  
-    {
-      rhotemp=Particle_density_for_energy_i(i)*All.UnitDensity_in_cgs;
-      utemp=SphP[i].InternalEnergyPred* 1.0e10;
-      InvertTempU(rhotemp, utemp, &SphP[i].Temperature,&press, &SphP[i].Entropy, &Cv, &SphP[i].SoundSpeed);
-    
-      press/=All.UnitPressure_in_cgs;
-      SphP[i].Entropy/=1.0e10;
-      SphP[i].SoundSpeed/=All.UnitVelocity_in_cm_per_s;
-      }*/
-    double rhotemp1, utemp, Cv,ptemp;
-    rhotemp1=Particle_density_for_energy_i(i);
-    utemp=0;
-    if (P[i].Mass>5e-5)
-    {
-      ANEOSInterpolateRhoU(Mattable[1], rhotemp1, SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &utemp, &Cv);
-      
-    }else{
-      ANEOSInterpolateRhoU(Mattable[0], rhotemp1, SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &utemp, &Cv);
-    }
-
-        rhotemp1=SphP[i].Vfrac*2.71;
-        ANEOSInterpolateRhoT(Mattable[SphP[i].imat], rhotemp1, SphP[i].Temperature, &utemp, &ptemp, &Cv, &SphP[i].Entropy); //from rho t to U P not working too coarse in T plane
-
-
-
-    /*    if(P[i].imat==1)
-    {
-      SphP[i].Pressure=5.0;////0.4*SphP[i].InternalEnergyPred * Particle_density_for_energy_i(i); 
-      SphP[i].SoundSpeed=sqrt(1.4 * SphP[i].Pressure / Particle_density_for_energy_i(i));
-      }*/
-    if(press< 1e-15) 
-    {      
-      press=1e-15;
-      SphP[i].SoundSpeed=1e-7;
-    }
-#endif    
     return press;
 }
 

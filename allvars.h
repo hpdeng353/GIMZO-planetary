@@ -96,12 +96,8 @@
 #include "tillotson/tillotson.h"
 #endif
 
-#ifdef EOS_MANEOS
-#include "maneos/aneostable.h"
-#endif
-
-#ifdef EOS_NANEOS
-#include "naneos/aneostable.h"
+#ifdef EOS_ANEOS
+#include "aneos/aneostable.h"
 #endif
 
 
@@ -1681,11 +1677,7 @@ extern struct sph_particle_data
 extern TILLMATERIAL  **Mattable;
 #endif
 
-#ifdef EOS_MANEOS
-extern ANEOSTable **Mattable;
-#endif
-
-#ifdef EOS_NANEOS
+#ifdef EOS_ANEOS
 extern ANEOSTable **Mattable;
 extern double rho0arr[860],t0arr[744]; /* the rho t arr of the aneos table, forsterite */
 extern double rho1arr[836],t1arr[812]; /* the rho t arr of the aneos table, iron */

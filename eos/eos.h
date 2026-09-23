@@ -4,7 +4,7 @@
 #include "../GIZMO_config.h"
 
 
-#if (defined(EOS_HELMHOLTZ) || defined(EOS_TILLOTSON) || defined(EOS_MANEOS) || defined(EOS_NANEOS) || defined(EOS_TRUELOVE_PRESSURE) || defined(TRUELOVE_CRITERION_PRESSURE)) && !defined(EOS_GENERAL)
+#if (defined(EOS_HELMHOLTZ) || defined(EOS_TILLOTSON) || defined(EOS_ANEOS) || defined(EOS_TRUELOVE_PRESSURE) || defined(TRUELOVE_CRITERION_PRESSURE)) && !defined(EOS_GENERAL)
 #define EOS_GENERAL
 #endif
 

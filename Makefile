@@ -701,15 +701,9 @@ OBJS    += tillotson/tillotson.o tillotson/tillinitlookup.o tillotson/tillsplint
 INCL	+= tillotson/tillotson.h
 endif
 
-ifeq (EOS_MANEOS,$(findstring EOS_MANEOS,$(CONFIGVARS)))
-OBJS	+= maneos/maneos.o  maneos/aneostable.o
-INCL	+= maneos/aneostable.h maneos/maneos.h 
-#FOBJS	+= maneos/libaneos.o
-endif
-
-ifeq (EOS_NANEOS,$(findstring EOS_NANEOS,$(CONFIGVARS)))
-OBJS	+= naneos/aneostable.o
-INCL	+= naneos/aneostable.h 
+ifeq (EOS_ANEOS,$(findstring EOS_ANEOS,$(CONFIGVARS)))
+OBJS	+= aneos/aneostable.o
+INCL	+= aneos/aneostable.h 
 endif
 
 ifeq (EOS_HELMHOLTZ,$(findstring EOS_HELMHOLTZ,$(CONFIGVARS)))

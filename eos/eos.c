@@ -6,9 +6,6 @@
 #include <gsl/gsl_math.h>
 #include "../allvars.h"
 #include "../proto.h"
-#ifdef EOS_MANEOS
-#include "../maneos/maneos.h"
-#endif
 
 /* Routines for gas equation-of-state terms (collects things like calculation of gas pressure)
  * This file was written by Phil Hopkins (phopkins@caltech.edu) for GIZMO.
@@ -104,39 +101,7 @@ else
 
 #endif
 
-#ifdef EOS_MANEOS
-    if (SphP[i].InternalEnergyPred <2.0e-3)
-    {
-      SphP[i].InternalEnergy=2.0e-3;
-      SphP[i].InternalEnergyPred=2.0e-3;
-      }
-
-    double rhotemp, utemp, Cv;
-    rhotemp=Particle_density_for_energy_i(i);
-    utemp=SphP[i].InternalEnergyPred;
-#ifndef MOONRELAX  //to relax the initial condtion we have pressumed temperature profile
-    ANEOSInterpolateRhoU(Mattable[SphP[i].imat], rhotemp, SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Temperature, &SphP[i].Entropy);
-
-        //        if((rhotemp>21.)&&(rhotemp<26)&&(utemp>1.1)&&(utemp<5.5)) ANEOSInterpolateRhoU(Mattable[2], rhotemp, utemp, &press, &SphP[i].SoundSpeed, &SphP[i].Temperature, &SphP[i].Entropy, &SphP[i].eospsi, &SphP[i].eosgamma);
-#else
-    //  
-
-    //    ANEOSInterpolateRhoU(Mattable[SphP[i].imat], rhotemp, SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Temperature, &SphP[i].Entropy);
-      ANEOSInterpolateRhoT(Mattable[SphP[i].imat], rhotemp, SphP[i].Temperature, &SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Entropy); //from rho t to U P not working too coarse in T plane
-#endif
-    /*    if(P[i].imat==1)
-    {
-      SphP[i].Pressure=5.0;////0.4*SphP[i].InternalEnergyPred * Particle_density_for_energy_i(i); 
-      SphP[i].SoundSpeed=sqrt(1.4 * SphP[i].Pressure / Particle_density_for_energy_i(i));
-      }*/
-    if(press< 1e-15) 
-      {      
-	press=1e-15;
-	SphP[i].SoundSpeed=1e-7;
-      }
-#endif
-
-#ifdef EOS_NANEOS
+#ifdef EOS_ANEOS
 
     double rhotemp, utemp, Cv;
     if (SphP[i].InternalEnergyPred <2.0e-3)
