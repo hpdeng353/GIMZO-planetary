@@ -609,24 +609,9 @@ void *GasGrad_evaluate_secondary(void *p, int gradient_iteration);
 void apply_excision();
 #endif
 
-#ifdef GLASS
-double taper1(double x, double x0, double sharp);
-double dr_taper1(double x, double x0, double sharp);
-double taper2(double x, double rin, double rout);
-double dr_taper2(double x, double rin, double rout);
-void eq_relax1(void);
-void eq_relax2(void);
-void eq_relax3(void);
-#endif
 #ifdef MOONRELAX
 void moonrelax_modify_kick(int i, double dp[3], double mass, double dt);
 #endif // MOONRELAX
-#ifdef NEWTEST
-void eq_relax3(void);
-#endif
-#ifdef DISKIC
-void eq_relax5(void);
-#endif
 #ifdef SET_alpha
 void alphavis(void);
 #endif

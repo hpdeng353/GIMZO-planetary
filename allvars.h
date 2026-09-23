@@ -97,7 +97,6 @@
 #endif
 
 #ifdef EOS_ANEOS
-#include "aneos/aneostable.h"
 #include "aneos/eos_table.h"
 #endif
 
@@ -1686,10 +1685,6 @@ extern TILLMATERIAL  **Mattable;
 #endif
 
 #ifdef EOS_ANEOS
-extern ANEOSTable **Mattable;
-extern double rho0arr[860],t0arr[744]; /* the rho t arr of the aneos table, forsterite */
-extern double rho1arr[836],t1arr[812]; /* the rho t arr of the aneos table, iron */
-
 #define EOS_TABLE_MAX_MATIDS 16      /*!< maximum number of imat -> material-ID mappings */
 extern EosTable *EosTableSpx;        /*!< mmap'd .spheos table; one shared mapping per node via page cache */
 extern EosTableUnits EosTableSpxUnits;  /*!< code <-> cgs conversion factors for the table */

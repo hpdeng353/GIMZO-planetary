@@ -723,8 +723,8 @@ INCL	+= tillotson/tillotson.h
 endif
 
 ifeq (EOS_ANEOS,$(findstring EOS_ANEOS,$(CONFIGVARS)))
-OBJS	+= aneos/aneostable.o aneos/eos_table.o
-INCL	+= aneos/aneostable.h aneos/eos_table.h
+OBJS	+= aneos/eos_table.o
+INCL	+= aneos/eos_table.h
 endif
 
 ifeq (EOS_HELMHOLTZ,$(findstring EOS_HELMHOLTZ,$(CONFIGVARS)))

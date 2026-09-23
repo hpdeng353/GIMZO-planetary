@@ -32,11 +32,6 @@ double get_pressure(int i)
 
 
 
-  /*#ifdef GLASS
-  press = (1+beta)*GAMMA_MINUS1/(beta+GAMMA_MINUS1) * SphP[i].InternalEnergyPred * Particle_density_for_energy_i(i);
-#endif // GLASS
-  */
-
 #ifdef EOS_BATE
   if(SphP[i].Density<1.68e-7)
 {
@@ -103,21 +98,6 @@ else
 
 #ifdef EOS_ANEOS
 
-#ifdef RHOT
-    double rhotemp, utemp, Cv;
-    if (SphP[i].InternalEnergyPred <2.0e-3)
-      {
-	SphP[i].InternalEnergy=2.0e-3;
-	SphP[i].InternalEnergyPred=2.0e-3;
-      }
-    rhotemp=Particle_density_for_energy_i(i);
-    utemp=SphP[i].InternalEnergyPred;
-
-    if (SphP[i].imat == 0)
-      {ANEOSInterpolateRhoT(Mattable[0], rho0arr, t0arr, rhotemp, SphP[i].Temperature, &SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Entropy);}
-    else
-      {ANEOSInterpolateRhoT(Mattable[1], rho1arr, t1arr, rhotemp, SphP[i].Temperature, &SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Entropy);}
-#else
     /* binary .spheos table: per-query unit conversion, table shared per node */
     {
       int imat = SphP[i].imat;
@@ -150,7 +130,6 @@ else
                    eos_table_status_string(st.status), num_out_of_range);
         }
     }
-#endif
 
     if(press< 1e-15)
     {

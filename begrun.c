@@ -1732,114 +1732,6 @@ void init_mat_table(void)
 
 
 #ifdef EOS_ANEOS /*ANEOS tabulated EOS: reads aneos/ tables*/
-#ifdef RHOT
-void init_mat_table(void)
-{
-  /*first read in the rho-T arr*/
-  FILE *fp;
-  int i,j,iRet;
-  char buf[512];
-  /*all tasks need a copy of eos for themselves*/
-  Mattable = malloc(2*sizeof(ANEOSTable *));
-
-  sprintf(buf, "%s%s", All.OutputDir, "eos/rho0.txt");
-
-  if(!(fp = fopen(buf, "r")))
-    {
-      printf("error in opening file '%s'\n", buf);
-      endrun(1);
-    }
-
-  for (j=0; j<860; j++)
-    {
-      iRet=fscanf(fp, "%lf", &rho0arr[j]);
-      rho0arr[j]/=All.UnitDensity_in_cgs;
-      if (iRet <= 0 && feof(fp))
-	{
-	  fprintf(stderr,"j=%i, iRet=%i\n",j,iRet);
-	}
-      assert(iRet > 0);
-    }
-  fclose(fp);
-  
-  sprintf(buf, "%s%s", All.OutputDir, "eos/temp0.txt");
-  if(!(fp = fopen(buf, "r")))
-    {
-      printf("error in opening file '%s'\n", buf);
-      endrun(1);
-    }
-  for (j=0; j<744; j++)
-    {
-      iRet=fscanf(fp, "%lf", &t0arr[j]);
-    }
-  fclose(fp);
-
-
-
-  sprintf(buf, "%s%s", All.OutputDir, "eos/rho1.txt");
-  if(!(fp = fopen(buf, "r")))
-    {
-      printf("error in opening file '%s'\n", buf);
-      endrun(1);
-    }
-  for (j=0; j<836; j++)
-    {
-      iRet=fscanf(fp, "%lf", &rho1arr[j]);
-      rho1arr[j]/=All.UnitDensity_in_cgs;
-    }
-  fclose(fp);
-
-  sprintf(buf, "%s%s", All.OutputDir, "eos/temp1.txt");
-  if(!(fp = fopen(buf, "r")))
-    {
-      printf("error in opening file '%s'\n", buf);
-      endrun(1);
-    }
-  for (j=0; j<812; j++)
-    {
-      iRet=fscanf(fp, "%lf", &t1arr[j]);
-    }
-  fclose(fp);
-  
-
-  
-  for (j=0;j< 2; j++)
-  {
-    /* Careful, the units used here are independent of dKpcUnit and dMSolMass set in the param file.
-     * We have to find a way to pass this information from the master to the pkd layer. */
-    switch(j)
-    {
-      case 0:
-        //        Mattable[j] = ANEOSInitTable(0, 9, 12, 0.01, 4.0e10, 8.0e10, 1.0e8);
-        Mattable[j] = ANEOSInitTable(0,860,744);
-        break;
-      case 1:
-        //Mattable[j] = ANEOSInitTable(1, 9., 12., 0.01, 4.0e10, 8.0e10, 1.0e8);
-        Mattable[j] = ANEOSInitTable(1,836,812);
-        break;
-  
-      default:
-        /* Unknown material */
-        assert(0);
-    }
-  }
-
-  sprintf(buf, "%s%s", All.OutputDir, "eos/eostable0.txt");
-  ANEOSTableRead(Mattable[0],buf,860,744);
-
-  sprintf(buf, "%s%s", All.OutputDir, "eos/eostable1.txt");
-  ANEOSTableRead(Mattable[1],buf,836,812);
-
-  //  printf("so far so good table '%i', from '%s'\n",Mattable[1]->iMat,buf);
-  //  sprintf(buf, "%s%s", All.OutputDir, "eos/testeos1.txt");
-  //  ANEOSTablePrint(Mattable[1], buf);
-
-
-  ANEOSTableConvertCodeunits(Mattable[0], All.UnitLength_in_cm, All.UnitMass_in_g,All.UnitTime_in_s); 
-  ANEOSTableConvertCodeunits(Mattable[1], All.UnitLength_in_cm, All.UnitMass_in_g,All.UnitTime_in_s);
-
-}
-#else /* !RHOT: binary .spheos table, one shared read-only mapping per node */
 void init_mat_table(void)
 {
   char path[1024];
@@ -1925,6 +1817,5 @@ void init_mat_table(void)
              EosTableSpxUnits.densityToTable, EosTableSpxUnits.energyToTable);
     }
 }
-#endif /* RHOT */
 #endif
 
