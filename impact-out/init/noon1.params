@@ -18,8 +18,14 @@
 %
 %
 
-InitCondFile                       /share/home/hpdeng/scratch/gizmout/noon1/init/noon1-ics
-OutputDir                          /share/home/hpdeng/scratch/gizmout/noon1
+% Self-contained run directory convention:
+%  Run from inside impact-out/ (the launcher run_impact_h100.slurm does this).
+%  OutputDir must keep its trailing '/': the EOS_ANEOS table reader builds
+%  paths as <OutputDir>+"eos/rho0.txt" etc., so tables live in impact-out/eos/.
+%  Snapshots, restart files and logs are written into impact-out/ itself.
+
+InitCondFile                       init/noon1-ics
+OutputDir                          ./
 RestartFile                        restart
 SnapshotFileBase                   snapshot
 OutputListFilename                 output_times.txt

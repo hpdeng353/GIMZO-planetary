@@ -11,6 +11,10 @@ core
 *.dat
 eostable/*.txt
 ics/eos/*.txt
+impact-out/eos/eostable*.txt
+impact-out/eos/rho*.txt
+impact-out/eos/temp*.txt
+impact-out/eos/testeos*.txt
 scripts/checkrho
 scripts/checkt
 scripts/rho1
