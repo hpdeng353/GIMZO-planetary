@@ -75,6 +75,8 @@ python3 scripts/makeplanet_planetg.py \
     --primary-mass-earth 0.91 \
     --secondary-mass-earth 0.11 \
     --primary-particle-count 5000000 \
+    --secondary-resolution-trials 12 \
+    --secondary-thin-overshoot-max 0.08 \
     --primary-output $WORK/primary_091.h5 \
     --secondary-output $WORK/secondary_011.h5 \
     --force
