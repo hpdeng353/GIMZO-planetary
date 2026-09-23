@@ -19,6 +19,14 @@
 #define MAXBLOCKS 500
 #define MAXCHARS  16
 
+/* Alignment guarantee for every block handed out from the slab.
+ * allvars.h declares struct particle_data / struct NODE with ALIGN(32), so the
+ * compiler may emit 32-byte-aligned vector loads/stores (movaps/vmovaps) for
+ * them.  Blocks must therefore start at offsets that are multiples of 32;
+ * we round to 64 so even AVX-512 (64-byte) aligned moves stay safe.
+ * The slab base itself is aligned to MYMALLOC_ALIGN in mymalloc_init(). */
+#define MYMALLOC_ALIGN 64
+
 static size_t TotBytes;
 static void *Base;
 
@@ -54,7 +62,8 @@ void mymalloc_init(void)
 
   n = All.MaxMemSize * ((size_t) 1024 * 1024);
 
-  if(!(Base = malloc(n)))
+  Base = NULL;
+  if(posix_memalign(&Base, MYMALLOC_ALIGN, n) != 0 || Base == NULL)
     {
       printf("Failed to allocate memory for `Base' (%d Mbytes).\n", All.MaxMemSize);
       endrun(122);
@@ -144,11 +153,11 @@ void dump_memory_table(void)
 
 void *mymalloc_fullinfo(const char *varname, size_t n, const char *func, const char *file, int line)
 {
-  if((n % 8) > 0)
-    n = (n / 8 + 1) * 8;
+  if((n % MYMALLOC_ALIGN) > 0)
+    n = (n / MYMALLOC_ALIGN + 1) * MYMALLOC_ALIGN;
 
-  if(n < 8)
-    n = 8;
+  if(n < MYMALLOC_ALIGN)
+    n = MYMALLOC_ALIGN;
 
   if(Nblocks >= MAXBLOCKS)
     {
@@ -189,11 +198,11 @@ void *mymalloc_fullinfo(const char *varname, size_t n, const char *func, const c
 void *mymalloc_movable_fullinfo(void *ptr, const char *varname, size_t n, const char *func, const char *file,
 				int line)
 {
-  if((n % 8) > 0)
-    n = (n / 8 + 1) * 8;
+  if((n % MYMALLOC_ALIGN) > 0)
+    n = (n / MYMALLOC_ALIGN + 1) * MYMALLOC_ALIGN;
 
-  if(n < 8)
-    n = 8;
+  if(n < MYMALLOC_ALIGN)
+    n = MYMALLOC_ALIGN;
 
   if(Nblocks >= MAXBLOCKS)
     {
@@ -336,11 +345,11 @@ void myfree_movable_fullinfo(void *p, const char *func, const char *file, int li
 
 void *myrealloc_fullinfo(void *p, size_t n, const char *func, const char *file, int line)
 {
-  if((n % 8) > 0)
-    n = (n / 8 + 1) * 8;
+  if((n % MYMALLOC_ALIGN) > 0)
+    n = (n / MYMALLOC_ALIGN + 1) * MYMALLOC_ALIGN;
 
-  if(n < 8)
-    n = 8;
+  if(n < MYMALLOC_ALIGN)
+    n = MYMALLOC_ALIGN;
 
   if(Nblocks == 0)
     endrun(76879);
@@ -382,11 +391,11 @@ void *myrealloc_movable_fullinfo(void *p, size_t n, const char *func, const char
 {
   unsigned int i;
 
-  if((n % 8) > 0)
-    n = (n / 8 + 1) * 8;
+  if((n % MYMALLOC_ALIGN) > 0)
+    n = (n / MYMALLOC_ALIGN + 1) * MYMALLOC_ALIGN;
 
-  if(n < 8)
-    n = 8;
+  if(n < MYMALLOC_ALIGN)
+    n = MYMALLOC_ALIGN;
 
   if(Nblocks == 0)
     endrun(768799);

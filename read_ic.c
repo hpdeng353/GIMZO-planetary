@@ -257,12 +257,14 @@ void empty_read_buffer(enum iofields blocknr, int offset, int pc, int type)
     MyInputFloat *fp;
     MyInputPosFloat *fp_pos;
     MyIDType *ip;
+    int *ip_int;
     float *fp_single;
-    
+
     fp = (MyInputFloat *) CommBuffer;
     fp_pos = (MyInputPosFloat *) CommBuffer;
     fp_single = (float *) CommBuffer;
     ip = (MyIDType *) CommBuffer;
+    ip_int = (int *) CommBuffer;
     
     switch (blocknr)
     {
@@ -379,9 +381,11 @@ void empty_read_buffer(enum iofields blocknr, int offset, int pc, int type)
             break;
 #endif
 #ifdef MOON
-        case IO_IMAT:	
+        case IO_IMAT:
+            /* Materials is stored as 4-byte ints (get_bytes_per_blockelement/get_datatype_in_block);
+             * must NOT be read through the MyIDType pointer, which is 8 bytes under LONGIDS */
             for(n = 0; n < pc; n++)
-              SphP[offset + n].imat = *ip++;
+              SphP[offset + n].imat = *ip_int++;
             break;
 #endif
 
