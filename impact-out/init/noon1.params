@@ -20,8 +20,10 @@
 
 % Self-contained run directory convention:
 %  Run from inside impact-out/ (the launcher run_impact_h100.slurm does this).
-%  OutputDir must keep its trailing '/': the EOS_ANEOS table reader builds
-%  paths as <OutputDir>+"eos/rho0.txt" etc., so tables live in impact-out/eos/.
+%  OutputDir must keep its trailing '/'.
+%  EOS_ANEOS loads the binary .spheos table given by EosTable (relative to
+%  OutputDir); stage it into impact-out/eos/ (copy or symlink). EosTableMatIds
+%  maps particle imat -> material ID in the table (62=forsterite, 63=iron).
 %  Snapshots, restart files and logs are written into impact-out/ itself.
 
 InitCondFile                       init/noon1-ics
@@ -94,6 +96,7 @@ DivBcleaningQ                      0.5
 BiniX                              0
 BiniY                              0
 BiniZ                              0.1
-EosTable			   eostable
+EosTable			   eos/rock_planet_aneos_62_63.spheos
+EosTableMatIds			   62,63
 BulkViscosityCoeff		   0.5
 ShearViscosityCoeff		   0.25

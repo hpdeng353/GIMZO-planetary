@@ -276,6 +276,7 @@ void begrun(void)
 
 #ifdef EOS_TABULATED
         strcpy(All.EosTable, all.EosTable);
+        strcpy(All.EosTableMatIds, all.EosTableMatIds);
 #endif
 
 
@@ -1116,6 +1117,10 @@ void read_parameter_file(char *fname)
         strcpy(tag[nt], "EosTable");
         addr[nt] = All.EosTable;
         id[nt++] = STRING;
+
+        strcpy(tag[nt], "EosTableMatIds");
+        addr[nt] = All.EosTableMatIds;
+        id[nt++] = STRING;
 #endif
 
 
@@ -1653,13 +1658,14 @@ void init_mat_table(void)
 
 
 #ifdef EOS_ANEOS /*ANEOS tabulated EOS: reads aneos/ tables*/
+#ifdef RHOT
 void init_mat_table(void)
 {
   /*first read in the rho-T arr*/
   FILE *fp;
   int i,j,iRet;
   char buf[512];
-  /*all tasks need a copy of eos for themselves*/  
+  /*all tasks need a copy of eos for themselves*/
   Mattable = malloc(2*sizeof(ANEOSTable *));
 
   sprintf(buf, "%s%s", All.OutputDir, "eos/rho0.txt");
@@ -1759,5 +1765,92 @@ void init_mat_table(void)
   ANEOSTableConvertCodeunits(Mattable[1], All.UnitLength_in_cm, All.UnitMass_in_g,All.UnitTime_in_s);
 
 }
+#else /* !RHOT: binary .spheos table, one shared read-only mapping per node */
+void init_mat_table(void)
+{
+  char path[1024];
+
+  /* resolve table path: absolute paths are used as-is, relative paths are
+     resolved against OutputDir (which keeps its trailing '/') */
+  if(All.EosTable[0] == '/')
+    sprintf(path, "%s", All.EosTable);
+  else
+    sprintf(path, "%s%s", All.OutputDir, All.EosTable);
+
+  /* every rank maps the file; the OS page cache keeps a single physical
+     copy of the 100+ MB table per node */
+  EosTableSpx = eos_table_load(path);
+  if(!EosTableSpx)
+    {
+      printf("EOS_ANEOS: failed to load EOS table '%s' on task %d\n", path, ThisTask);
+      endrun(1);
+    }
+
+  /* parse the imat -> material-ID mapping, e.g. EosTableMatIds "62,63" means
+     imat 0 -> material 62 (forsterite), imat 1 -> material 63 (iron) */
+  EosTableSpxNumMats = 0;
+  {
+    char list[100];
+    char *token;
+    strncpy(list, All.EosTableMatIds, sizeof(list) - 1);
+    list[sizeof(list) - 1] = '\0';
+    for(token = strtok(list, " ,\t"); token; token = strtok(NULL, " ,\t"))
+      {
+        int matId;
+        if(EosTableSpxNumMats >= EOS_TABLE_MAX_MATIDS)
+          {
+            printf("EOS_ANEOS: more than %d entries in EosTableMatIds '%s'\n",
+                   EOS_TABLE_MAX_MATIDS, All.EosTableMatIds);
+            endrun(1);
+          }
+        matId = atoi(token);
+        if(eos_table_bounds(EosTableSpx, (uint32_t)matId, NULL, NULL, NULL, NULL) != 0)
+          {
+            printf("EOS_ANEOS: material ID %d (imat=%d) not present in table '%s'\n",
+                   matId, EosTableSpxNumMats, path);
+            endrun(1);
+          }
+        EosTableSpxMatId[EosTableSpxNumMats++] = matId;
+      }
+  }
+  if(EosTableSpxNumMats == 0)
+    {
+      printf("EOS_ANEOS: EosTableMatIds is empty; expected e.g. '62,63'\n");
+      endrun(1);
+    }
+
+  /* the table is cgs-backed; the code specific-energy unit is UnitVelocity^2 */
+  {
+    double energyUnitCgs = All.UnitVelocity_in_cm_per_s * All.UnitVelocity_in_cm_per_s;
+    if(eos_table_units_cgs(&EosTableSpxUnits, All.UnitDensity_in_cgs, energyUnitCgs) != 0)
+      {
+        printf("EOS_ANEOS: invalid code units for EOS table conversion "
+               "(UnitDensity_in_cgs=%g, UnitVelocity_in_cm_per_s=%g)\n",
+               All.UnitDensity_in_cgs, All.UnitVelocity_in_cm_per_s);
+        endrun(1);
+      }
+  }
+
+  if(ThisTask == 0)
+    {
+      int k;
+      printf("\nEOS_ANEOS: loaded .spheos table '%s' with %u material(s)\n",
+             path, eos_table_num_materials(EosTableSpx));
+      for(k = 0; k < EosTableSpxNumMats; k++)
+        {
+          double rhoMin, rhoMax, uMin, uMax;
+          eos_table_bounds(EosTableSpx, (uint32_t)EosTableSpxMatId[k], &rhoMin, &rhoMax, &uMin, &uMax);
+          printf("EOS_ANEOS: imat=%d -> material %d (native=%d, entropy=%d, "
+                 "rho=[%g,%g] g/cm^3, u=[%g,%g] erg/g)\n",
+                 k, EosTableSpxMatId[k],
+                 eos_table_is_native(EosTableSpx, (uint32_t)EosTableSpxMatId[k]),
+                 eos_table_has_entropy(EosTableSpx, (uint32_t)EosTableSpxMatId[k]),
+                 rhoMin, rhoMax, uMin, uMax);
+        }
+      printf("EOS_ANEOS: code units: density=%g g/cm^3, specific energy=%g erg/g\n\n",
+             EosTableSpxUnits.densityToTable, EosTableSpxUnits.energyToTable);
+    }
+}
+#endif /* RHOT */
 #endif
 

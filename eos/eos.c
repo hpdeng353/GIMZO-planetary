@@ -103,6 +103,7 @@ else
 
 #ifdef EOS_ANEOS
 
+#ifdef RHOT
     double rhotemp, utemp, Cv;
     if (SphP[i].InternalEnergyPred <2.0e-3)
       {
@@ -112,22 +113,47 @@ else
     rhotemp=Particle_density_for_energy_i(i);
     utemp=SphP[i].InternalEnergyPred;
 
-#ifndef RHOT
-    if (SphP[i].imat == 0)
-      {ANEOSInterpolateRhoU(Mattable[0], rho0arr, t0arr, rhotemp, SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Temperature, &SphP[i].Entropy);}
-    else
-      {ANEOSInterpolateRhoU(Mattable[1], rho1arr, t1arr, rhotemp, SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Temperature, &SphP[i].Entropy);}
-#else
     if (SphP[i].imat == 0)
       {ANEOSInterpolateRhoT(Mattable[0], rho0arr, t0arr, rhotemp, SphP[i].Temperature, &SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Entropy);}
     else
       {ANEOSInterpolateRhoT(Mattable[1], rho1arr, t1arr, rhotemp, SphP[i].Temperature, &SphP[i].InternalEnergyPred, &press, &SphP[i].SoundSpeed, &SphP[i].Entropy);}
-#endif
-      
+#else
+    /* binary .spheos table: per-query unit conversion, table shared per node */
+    {
+      int imat = SphP[i].imat;
+      EosTableState st;
+      static int num_out_of_range = 0; /* per-rank diagnostic counter */
 
-      
-    if(press< 1e-15) 
-    {      
+      if(imat < 0 || imat >= EosTableSpxNumMats)
+        {
+          printf("EOS_ANEOS: task %d particle %d has imat=%d, but only %d material IDs are mapped (EosTableMatIds)\n",
+                 ThisTask, i, imat, EosTableSpxNumMats);
+          endrun(1);
+        }
+
+      st = eos_table_evaluate_code(EosTableSpx,
+                                   Particle_density_for_energy_i(i),
+                                   SphP[i].InternalEnergyPred,
+                                   (uint32_t)EosTableSpxMatId[imat], 1,
+                                   EosTableSpxUnits);
+      press                 = st.pressure;
+      SphP[i].SoundSpeed    = st.soundSpeed;
+      SphP[i].Temperature   = st.temperature;
+      SphP[i].Entropy       = st.entropy;
+
+      if(st.status != EOS_TABLE_SUCCESS)
+        {
+          num_out_of_range++;
+          if(num_out_of_range <= 10 || num_out_of_range % 100000 == 0)
+            printf("EOS_ANEOS: task %d particle %d (imat=%d): rho=%g u=%g code units -> status=%s (occurrence %d)\n",
+                   ThisTask, i, imat, Particle_density_for_energy_i(i), SphP[i].InternalEnergyPred,
+                   eos_table_status_string(st.status), num_out_of_range);
+        }
+    }
+#endif
+
+    if(press< 1e-15)
+    {
       press=1e-15;
       SphP[i].SoundSpeed=1e-7;
     }

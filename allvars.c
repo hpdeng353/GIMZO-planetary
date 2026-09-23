@@ -253,6 +253,11 @@ TILLMATERIAL  **Mattable;
 ANEOSTable **Mattable;
 double rho0arr[860],t0arr[744]; /* the rho t arr of the aneos table, forsterite */
 double rho1arr[836],t1arr[812]; /* the rho t arr of the aneos table, iron */
+
+EosTable *EosTableSpx;
+EosTableUnits EosTableSpxUnits;
+int EosTableSpxNumMats;
+int EosTableSpxMatId[EOS_TABLE_MAX_MATIDS];
 #endif
 
 struct state_of_system SysState, SysStateAtStart, SysStateAtEnd;

@@ -98,6 +98,7 @@
 
 #ifdef EOS_ANEOS
 #include "aneos/aneostable.h"
+#include "aneos/eos_table.h"
 #endif
 
 
@@ -1339,7 +1340,8 @@ extern struct global_data_all_processes
 
 
 #ifdef EOS_TABULATED
-    char EosTable[100];
+    char EosTable[100];        /*!< path to the .spheos EOS table; relative paths are resolved against OutputDir */
+    char EosTableMatIds[100];  /*!< comma-separated material IDs in the table, indexed by particle imat, e.g. "62,63" */
 #endif
 
 
@@ -1681,6 +1683,12 @@ extern TILLMATERIAL  **Mattable;
 extern ANEOSTable **Mattable;
 extern double rho0arr[860],t0arr[744]; /* the rho t arr of the aneos table, forsterite */
 extern double rho1arr[836],t1arr[812]; /* the rho t arr of the aneos table, iron */
+
+#define EOS_TABLE_MAX_MATIDS 16      /*!< maximum number of imat -> material-ID mappings */
+extern EosTable *EosTableSpx;        /*!< mmap'd .spheos table; one shared mapping per node via page cache */
+extern EosTableUnits EosTableSpxUnits;  /*!< code <-> cgs conversion factors for the table */
+extern int EosTableSpxNumMats;       /*!< number of valid entries in EosTableSpxMatId */
+extern int EosTableSpxMatId[EOS_TABLE_MAX_MATIDS]; /*!< imat -> material ID in the .spheos table */
 #endif
 
 #ifdef INFALL
