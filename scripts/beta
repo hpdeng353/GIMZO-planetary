@@ -1,0 +1,17 @@
+#!/bin/bash
+beta="beta"
+beta=$beta$1
+echo $beta
+#mv /scratch/snx3000/hpdeng/gizmout/$beta/snapshot* /scratch/snx3000/hpdeng/gizmobak/$beta
+#rm /scratch/snx3000/hpdeng/gizmout/$beta/beta*
+#cp /users/hpdeng/gizmo/scripts/disk-ics.hdf5 /scratch/snx3000/hpdeng/gizmout/$beta/init/$beta-ics.hdf5
+cp ../$beta.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /scratch/snx3000/hpdeng/gizmout/$beta/
+cp GIZMO /scratch/snx3000/hpdeng/gizmout/$beta/init/
+cd /scratch/snx3000/hpdeng
+cp /users/hpdeng/gizmo/job/$beta.job ./
+sbatch $beta.job
+rm $beta.job

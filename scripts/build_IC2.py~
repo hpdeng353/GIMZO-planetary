@@ -1,0 +1,288 @@
+################################################################################
+###### This is an example script to generate HDF5-format ICs for GIZMO
+######  The specific example below is obviously arbitrary, but could be generalized
+######  to whatever IC you need. 
+################################################################################
+################################################################################
+
+
+## load libraries we will use 
+import numpy as np
+import h5py as h5py
+import math as m
+import matplotlib.pyplot as plt
+
+
+
+def taper1(x,x0,sharp): #default setting center of taper x0=3*rin
+    f = 1.0 - 1.0/(m.exp((x-x0)/sharp)+1.)
+    return f
+def taper2(x,rin,rout):
+    f = m.sqrt(rin/x) + m.sqrt(rout/x)-m.sqrt(rin*rout/x/x)-1.
+    return f
+    
+    
+def dr_taper1(x,x0,sharp):
+    dfdr = 1.0/(m.exp((x-x0)/sharp)+1.)/(m.exp((x-x0)/sharp)+1.)/sharp*m.exp((x-x0)/sharp)
+    return dfdr
+def dr_taper2(x,rin,rout):
+    dfdr = -0.5*(m.sqrt(rin)+m.sqrt(rout))*m.pow(x,-1.5)+m.sqrt(rin*rout)/x/x
+    return dfdr
+
+def Polar2Cartisian(radius,theta):
+    xx=np.zeros(len(radius))
+    yy = np.zeros(len(radius))
+    for i in range(0,len(radius)):
+        xx[i] = radius[i] * m.cos(theta[i])
+        yy[i] = radius[i] * m.sin(theta[i])
+    return xx, yy
+
+def Veltransform(vr,vt,theta):
+    vx = np.zeros(len(theta))
+    vy = np.zeros(len(theta))
+    for i in range(len(theta)):
+        #vx[i] = vr[i] * m.cos(theta[i]) - vt[i] * m.sin(theta[i])
+        #vy[i] = vr[i] * m.sin(theta[i]) + vt[i] * m.cos(theta[i])
+        vx[i] =  - vt[i] * m.sin(theta[i])
+        vy[i] =  vt[i] * m.cos(theta[i])
+    return vx, vy
+
+def phi(rr,zz):
+    potential=-1./(m.sqrt(rr*rr+zz*zz)-2.)
+    return potential
+    
+def randparticle(numpart,rho_power,temp_power,rin,rout,rho0,beta,c_s,h0):   #beta goes to infinite reduce to zero BF +
+    import random
+    step = 1.0/10000 * (rout - rin)
+    sigma = np.zeros(10000)
+    rho = np.zeros(10000)
+    rr = np.arange(rin,rout,step)
+    maxrho = 0
+    count = 0
+    radius = []
+    z = []
+    normal = 0
+    normal1 = 0
+    Hmax = h0 * m.pow((rout/rin),(temp_power+3.0)/2.0) * 3
+    aspect0=h0/rin
+    stepz = 1.0/300*Hmax
+    zz = np.arange(-Hmax,Hmax,stepz)
+    for i in range(0,10000):
+        phi0=phi(rr[i],0)
+        for j in range(0,600):
+            phi1=phi(rr[i],zz[j])
+            normal1 += rho0*m.exp((phi0-phi1)/c_s/c_s*m.pow((rr[i]/rin),-temp_power)*beta/(1.+beta)) * taper2(rr[i],rin,rout) * m.pow((rr[i]/rin),rho_power)*step*stepz * 2. * np.pi * rr[i]
+
+    for i in range(0,10000):
+        rho[i] = rho0*taper2(rr[i],rin,rout) * m.pow((rr[i]/rin),rho_power) * rr[i]
+
+    for i in range(0,len(rho)):
+        if rho[i] > maxrho:
+            maxrho = rho[i]
+    maxrho = maxrho *1.1
+    while count < numpart :
+        x1 = np.random.uniform(rin,rout)
+        y1 = np.random.uniform(-Hmax, Hmax)
+        z1 = np.random.uniform(0,maxrho)
+        phi0=phi(x1,0)
+        phi1=phi(x1,y1)
+        rho_x1_y1 = rho0*taper2(x1,rin,rout) * x1* m.pow((x1/rin),rho_power)* m.exp((phi0-phi1)/c_s/c_s*m.pow((rr[i]/rin),-temp_power)*beta/(1.+beta))
+        if rho_x1_y1 > z1 :
+            radius.append(x1)
+            z.append(y1)
+            count += 1
+            if (count%1000000 ==0):
+                print count/1000000,'M particles'
+    radius=np.asarray(radius)
+    z=np.asarray(z)
+    print 'maxr=',max(radius),'minr=',min(radius)
+        
+    theta=np.random.uniform(0,2 * np.pi,numpart)
+    return radius,theta,z,normal1
+
+
+    
+    
+    
+def makedisk():
+    fname = 'disk_ics.hdf5'
+    Ngas = 1000000
+    T0=0.0015
+    mu=1.0
+    gamma=5.0/3.0
+    selfgravity = 0 # selfgravity = 0 no dark particle in ic
+    Rho_Power = -33/20
+    Temp_Power = -1.
+    Sigma_Power = Rho_Power+(Temp_Power+3.0)/2.0
+    Rin = 1 #in code unit corespond to 1.25AU temp0=300
+    Rout = 25 #in code unit corespond to 62.5AU
+    V_k = m.sqrt(Rin)/(Rin-2.)
+    C_s = m.sqrt(T0)
+    beta =15.
+    H0 = 0.7
+    rho0=10.
+    Aspect0 =H0/Rin
+    aspect1=H0*m.pow((Rout/Rin),(Temp_Power+3.0)/2.0) / Rout 
+    Radius,Theta,Z, Normal1 = randparticle(Ngas,Rho_Power,Temp_Power,Rin,Rout,rho0,beta,C_s,H0)
+
+    print 'beta=', beta,'gamma=',gamma,"totalmass=",Normal1
+    print 'sigmapower=', Sigma_Power
+
+    
+
+
+    #  first - open the hdf5 ics file, with the desired filename
+    file = h5py.File(fname,'w') 
+    # set particle number of each type into the 'npart' vector
+    #  NOTE: this MUST MATCH the actual particle numbers assigned to each type, i.e.
+    #   npart = np.array([number_of_PartType0_particles,number_of_PartType1_particles,number_of_PartType2_particles,
+    #                     number_of_PartType3_particles,number_of_PartType4_particles,number_of_PartType5_particles])
+    #   or else the code simply cannot read the IC file correctly!
+    #
+    if selfgravity == 0 :
+        npart = np.array([Ngas,0,0,0,0,0]) # we have gas and particles we will set for type 3 here, zero for all others
+    else:
+        npart = np.array([Ngas,1,0,0,0,0])
+        
+    # now we make the Header - the formatting here is peculiar, for historical (GADGET-compatibility) reasons
+    h = file.create_group("Header");
+    # here we set all the basic numbers that go into the header
+    # (most of these will be written over anyways if it's an IC file; the only thing we actually *need* to be 'correct' is "npart")
+    h.attrs['NumPart_ThisFile'] = npart; # npart set as above - this in general should be the same as NumPart_Total, it only differs 
+                                         #  if we make a multi-part IC file. with this simple script, we aren't equipped to do that.
+    h.attrs['NumPart_Total'] = npart; # npart set as above
+    h.attrs['NumPart_Total_HighWord'] = 0*npart; # this will be set automatically in-code (for GIZMO, at least)
+    h.attrs['MassTable'] = np.zeros(6); # these can be set if all particles will have constant masses for the entire run. however since 
+                                        # we set masses explicitly by-particle this should be zero. that is more flexible anyways, as it 
+                                        # allows for physics which can change particle masses 
+    ## all of the parameters below will be overwritten by whatever is set in the run-time parameterfile if
+    ##   this file is read in as an IC file, so their values are irrelevant. they are only important if you treat this as a snapshot
+    ##   for restarting. Which you shouldn't - it requires many more fields be set. But we still need to set some values for the code to read
+    h.attrs['Time'] = 0.0;  # initial time
+    h.attrs['Redshift'] = 0.0; # initial redshift
+    h.attrs['BoxSize'] = 10.0; # box size
+    h.attrs['NumFilesPerSnapshot'] = 1; # number of files for multi-part snapshots
+    h.attrs['Omega0'] = 0.0; # z=0 Omega_matter
+    h.attrs['OmegaLambda'] = 0.0; # z=0 Omega_Lambda
+    h.attrs['HubbleParam'] = 0.0; # z=0 hubble parameter (small 'h'=H/100 km/s/Mpc)
+    h.attrs['Flag_Sfr'] = 0; # flag indicating whether star formation is on or off
+    h.attrs['Flag_Cooling'] = 0; # flag indicating whether cooling is on or off
+    h.attrs['Flag_StellarAge'] = 0; # flag indicating whether stellar ages are to be saved
+    h.attrs['Flag_Metals'] = 0; # flag indicating whether metallicity are to be saved
+    h.attrs['Flag_Feedback'] = 0; # flag indicating whether some parts of springel-hernquist model are active
+    h.attrs['Flag_DoublePrecision'] = 0; # flag indicating whether ICs are in single/double precision
+    h.attrs['Flag_IC_Info'] = 0; # flag indicating extra options for ICs
+    ## ok, that ends the block of 'useless' parameters
+    
+    # Now, the actual data!
+    #   These blocks should all be written in the order of their particle type (0,1,2,3,4,5)
+    #   If there are no particles of a given type, nothing is needed (no block at all)
+    #   PartType0 is 'special' as gas. All other PartTypes take the same, more limited set of information in their ICs
+    
+    # start with particle type zero. first (assuming we have any gas particles) create the group 
+    p = file.create_group("PartType0")
+    # now combine the xyz positions into a matrix with the correct format
+    q=np.zeros((Ngas,3))
+
+    q[:,2] = Z
+    xx,yy = Polar2Cartisian(Radius, Theta)
+    q[:,0] = xx
+    q[:,1] = yy
+    # write it to the 'Coordinates' block
+    p.create_dataset("Coordinates",data=q)
+    # similarly, combine the xyz velocities into a matrix with the correct format
+    q=np.zeros((Ngas,3))
+    q[:,2] = 0
+    Vr = np.zeros(Ngas)
+    Vt = np.zeros(Ngas)
+    for i in range(0,len(Radius)):
+        Vt[i] =  Radius[i]/(Radius[i]-2)/(Radius[i]-2) + 2.0 / beta * C_s * C_s * m.pow((Radius[i]/Rin),Temp_Power) + \
+                (1.0 + beta) / beta * C_s * C_s * Temp_Power * m.pow((Radius[i]/Rin),Temp_Power) \
+                + (1.0 + beta) / beta * C_s * C_s * m.pow((Radius[i]/Rin),Temp_Power) * Rho_Power \
+                + (phi(Radius[i],Z[i])-phi(Radius[i],0))*Temp_Power
+        if (Radius[i] < Rout*0.95) and (Radius[i] > Rin*1.001) :
+            Vt[i] = Vt[i] + (1.0 + beta) / beta * C_s * C_s * m.pow((Radius[i]/Rin),Temp_Power) * \
+                    dr_taper2(Radius[i],Rin,Rout)/taper2(Radius[i],Rin,Rout)*Radius[i]
+            
+
+        if Vt[i]<0:
+            print 'please stop!bad circular vel at r=',Radius[i]
+        else:
+            Vt[i]=m.sqrt(Vt[i])
+        
+    Vx,Vy = Veltransform(Vr,Vt,Theta)
+
+    q[:,0] = Vx
+    q[:,1] = Vy
+    
+    # write it to the 'Velocities' block
+    p.create_dataset("Velocities",data=q)
+    # write particle ids to the ParticleIDs block
+    id_g=np.arange(1,Ngas+1)
+    p.create_dataset("ParticleIDs",data=id_g)
+    # write particle masses to the Masses block
+    mass=np.zeros(Ngas)
+
+    mass[:] = Normal1 / Ngas 
+    p.create_dataset("Masses",data=mass)
+    # write internal energies to the InternalEnergy block
+    internalu=np.zeros(Ngas)
+    for i in range(0,Ngas):
+        internalu[i] = C_s * C_s /(gamma-1) * m.pow((Radius[i]/Rin), Temp_Power)
+    print max(internalu)
+    p.create_dataset("InternalEnergy",data=internalu)
+    print 'maxu=',max(internalu)
+    # combine the xyz magnetic fields into a matrix with the correct format
+    q=np.zeros((Ngas,3))
+    q[:,2]=0
+    Br=np.zeros(Ngas)
+    Bt=np.zeros(Ngas)
+    H = H0 * m.pow((Radius[i]/Rin),(Temp_Power+3.0)/2.0) 
+    for i in range(0,len(Radius)): # bf in gauss
+         Bt[i]= rho0 * m.exp((phi(Radius[i],0)-phi(Radius[i],Z[i]))/C_s/C_s*m.pow((Radius[i]/Rin),-Temp_Power)*beta/(1.+beta))* taper2(Radius[i],Rin,Rout)*m.pow((Radius[i]/Rin),Rho_Power)
+         Bt[i]= m.sqrt(8.0 * np.pi *1.5e14 /beta *Bt[i])*C_s * m.pow(Radius[i]/Rin,Temp_Power/2.0)
+    Bx,By = Veltransform(Br,Bt,Theta)
+    q[:,0]=Bx
+    q[:,1]=By
+    index1=np.argmax(Bt)
+    print 'maxB',max(Bt),'at',Radius[index1],Z[index1]
+    index2=np.argmin(Bt)
+    print 'minB',min(Bt),'at',Radius[index2],Z[index2]
+    # write magnetic fields to the MagneticField block. note that this is unnecessary if the code is compiled with 
+    #   MAGNETIC off. however, it is not a problem to have the field there, even if MAGNETIC is off, so you can 
+    #   always include it with some dummy values and then use the IC for either case
+    p.create_dataset("MagneticField",data=q)
+
+    # no PartType1 for this IC
+    # no PartType2 for this IC
+
+    # now assign the collisionless particles to PartType3. note that this block looks exactly like 
+    #   what we had above for the gas. EXCEPT there are no "InternalEnergy" or "MagneticField" fields (for 
+    #   obvious reasons). 
+
+    if selfgravity > 0:
+        p = file.create_group("PartType1")
+        id_d=np.arange(Ngas+1,Ngas+2)
+        p.create_dataset("ParticleIDs",data=id_d)
+        mv_d=np.zeros(1)
+        mv_d[0] =StarMass
+    #    mass = np.asarray(mv_d)
+        p.create_dataset("Masses",data=mv_d)
+    
+        q=np.zeros((1,3))
+        p.create_dataset("Coordinates",data=q)
+        p.create_dataset("Velocities",data=q)
+
+
+    file.close()
+
+    if Ngas < 300001:
+        plt.figure()
+        plt.scatter(xx,yy,s=1)
+        plt.axis('equal')
+        plt.show()
+
+
+
+
+makedisk()

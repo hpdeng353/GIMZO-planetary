@@ -1,0 +1,17 @@
+#!/bin/bash
+cai="cai"
+cai=$cai$1
+echo $cai
+#mv /scratch/snx3000/hpdeng/gizmout/$cai/snapshot* /scratch/snx3000/hpdeng/gizmobak/$cai
+#rm /scratch/snx3000/hpdeng/gizmout/$cai/cai*
+#cp /users/hpdeng/gizmo/scripts/mhd-ics.hdf5 /scratch/snx3000/hpdeng/gizmout/$cai/init/$cai-ics.hdf5
+cp ../$cai.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /sh2/home/denghpjn457/scratch/$cai/
+cp GIZMO /sh2/home/denghpjn457/scratch/$cai/init
+cd /sh2/home/denghpjn457/scratch/$cai/
+cp /sh2/home/denghpjn457/planetg/job/$cai.job ./
+sbatch $cai.job
+

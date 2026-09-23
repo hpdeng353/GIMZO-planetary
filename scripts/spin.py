@@ -1,0 +1,31 @@
+import h5py
+import numpy as np
+
+
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/moon4/snapshot_000.hdf5','r+')
+
+
+vel = s["PartType0"]["Velocities"][:]
+u = s["PartType0"]["InternalEnergy"][:]
+rho = s["PartType0"]["Density"][:]
+coord= s["PartType0"]["Coordinates"][:]
+
+del s["PartType0"]["Velocities"]
+
+ample1=0.5
+
+vel[:,0]= -ample1*coord[:,1]
+vel[:,1]= ample1*coord[:,0]
+
+ #u = (1-1./betay)*u  
+
+
+
+
+
+#s.create_dataset("PartType0/InternalEnergy",data=u)
+s.create_dataset("PartType0/Velocities",data=vel)
+s.flush()
+s.close()
+            
+

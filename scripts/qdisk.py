@@ -1,0 +1,123 @@
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+
+#B0=np.sqrt(8.*np.pi/400)
+#beta=B0*B0/8./np.pi
+#beta=1./beta
+ample=0.
+
+
+s = h5py.File('/scratch/snx3000/hpdeng/temp/snapshot_159.hdf5','r+')
+
+
+vel=s["PartType0"]["Velocities"][:]
+#del s["PartType0"]["Velocities"]
+
+#del s["PartType0"]["ParticleIDs"]
+u=s["PartType0"]["InternalEnergy"][:]
+#del s["PartType0"]["InternalEnergy"]
+#entr=s["PartType0"]["Entropy"][:]
+mass = s["PartType0"]["Masses"][:]
+pos= s["PartType0"]["Coordinates"][:]
+pos1=s["PartType1"]["Coordinates"][:]
+hsml=s["PartType0"]["SmoothingLength"][:]
+#npgr=s["PartType0"]["newpgrp"][:]
+#mp=np.min(mass)*6
+#mass[np.where(mass<0.5)]=mp
+#rock=62.4659/len(ids)*0.887/(1+coreidratio)
+#mass[:]=rock
+#mass[np.where(ids<len(ids)*coreidratio)]=rock*2.
+
+#del s["PartType0"]["Masses"]
+
+
+#mass[:]=0.0001251
+#totalmass=np.sum(mass)
+vel[:,1]=0#-1.5*(pos[:,0]-0.5)
+vel[:,0]=0#np.abs(pos[:,1]-2) -2.
+vel[:,2]=0
+
+#u*=1.98
+x0=np.average(pos[:,0])
+y0=np.average(pos[:,1])
+z0=np.average(pos[:,2])
+
+pos[:,0]-=pos1[0][0]
+pos[:,1]-=pos1[0][1]
+pos[:,2]-=pos1[0][2]
+zz=pos[:,2]
+
+radius=np.sqrt(pos[:,0]*pos[:,0]+pos[:,1]*pos[:,1]+pos[:,2]*pos[:,2])
+#ids[np.where(radius>0.7)]=0
+h=np.sqrt(u*5/3.*2./3)*(radius)**(1.5)
+
+qdisk=hsml/h
+
+#mass[np.where(mat==1)]=0.0002175
+#mass[np.where(mat==0)]=0.0001074
+#mass[np.where(mat==0)]=0
+#totalmass=np.sum(mass)/62.46
+#print totalmass
+mass[:]=3e-7
+#mass[np.where(npgr!=2)]=0
+"""
+vel[:,0]+=ample*np.random.uniform(-1.,1.,len(u)) 
+vel[:,1]+=ample*np.random.uniform(-1.,1.,len(u)) 
+vel[:,2]+=ample*np.random.uniform(-1.,1.,len(u))     
+
+r0=0.02
+for i in range(0,1000000):
+    corer=r0+i*0.00001
+    mass1=mass[np.where(radius<corer)]
+    massincore=np.sum(mass1)
+#    print i, corer, massincore
+    if massincore>4.6814:
+        print corer
+        break
+
+print massincore,corer
+mat[:]=0
+mat[np.where(radius<corer)]=1
+
+
+mass[np.where(mat==1)]=0.0002175
+mass[np.where(mat==0)]=0.0001074
+#mass[np.where(radius>0.6)]=0
+#vel[:,0]=0
+
+#u[:]=1
+
+
+#u[np.where(mat==1)]=8
+#u[np.where(mat==0)] =5
+
+#u[np.where(u<1)]=2.4
+#ironmass=mass[np.where(mat==1)]
+
+print np.sum(ironmass)/np.sum(mass)
+print "mass=", np.sum(mass)/62.46
+"""
+
+#temp=4000-2000*radius
+
+#u[np.where(u<1)]=1.
+#aa=np.loadtxt('clump.txt')
+s.create_dataset("PartType0/qdisk",data=qdisk)
+#s.create_dataset("PartType0/Materials",data=mat)
+#s.create_dataset("PartType0/InternalEnergy",data=u)
+#s.create_dataset("PartType0/Temperature",data=temp)
+#s.create_dataset("PartType0/Velocities",data=vel)
+#s.create_dataset("PartType0/Masses",data=mass)
+#s.create_dataset("PartType/Masses",data=mass1)
+
+s.flush()
+s.close()
+"""            
+xx=radius[np.where((zz<5)&(zz>-5)&(mat==1))]
+
+yy=entr[np.where((zz<5)&(zz>-5)&(mat==1))]
+yy*=1e6
+plt.scatter(xx,yy, s=1,c="#fb0a2a")
+plt.show()
+"""

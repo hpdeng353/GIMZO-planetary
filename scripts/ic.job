@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH -o /zbox/data/hpdeng/gizmout/ic.out
+#SBATCH -J ngrvmhd2
+#SBATCH -p zbox
+#SBATCH --time 0-06:40:00
+#SBATCH --ntasks=1
+#SBATCH --mail-user=hpdeng@physik.uzh.ch
+
+
+
+data=/zbox/data/hpdeng/gizmout/
+source= /home/ics/hpdeng/gizmo-public/scripts/build_IC1.py
+cd $data
+
+echo ""
+echo "***** LAUNCHING *****"
+echo `date '+%F %H:%M:%S'`
+echo ""
+
+export DATE=`date +%F_%H%M`
+python $source
+
+echo ""
+echo "***** DONE *****"
+echo `date '+%F %H:%M:%S'`
+echo ""

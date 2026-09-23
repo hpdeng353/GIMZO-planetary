@@ -1,0 +1,58 @@
+import h5py
+import numpy as np
+
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/grvdisk1/init/grvdisk1-ics.hdf5','r+')
+
+
+npart=s["Header"].attrs["NumPart_ThisFile"]
+Npart=s["Header"].attrs["NumPart_Total"]
+Ngas=npart[0]
+
+npart = npart + [0,1,0,0,0,0]
+Npart = Npart + [0,1,0,0,0,0]
+
+#s["Header"].attrs.modify("NumPart_ThisFile",npart)
+#s["Header"].attrs.modify("NumPart_Total",Npart)
+
+pos = s["PartType0"]["Coordinates"][:]
+x0=np.average(pos[:,0])
+y0=np.average(pos[:,1])
+z0=np.average(pos[:,2])
+#pos1 = s["PartType1"]["Coordinates"][:]
+
+del s["PartType2"]["ParticleIDs"]
+pos[:,0] -= 0
+pos[:,1] -= 0
+pos[:,2] -= 0
+
+
+starmass=0.33 
+print "star mass=", starmass
+
+ids = np.asarray([50000000,])
+mass = np.asarray([starmass,])
+pos1=[[0.,0.,0.],]
+vel=[[0,0,0.],]
+
+
+#del s["PartType1"]["Masses"]
+#del s["PartType0"]["Coordinates"]
+#del s["PartType1"]["Coordinates"]
+#del s["PartType2"]["ParticleIDs"]
+#del s["PartType1"]["Velocities"]
+
+
+#s.create_dataset("PartType1/Masses",data=mass)
+s.create_dataset("PartType2/ParticleIDs",data=ids)
+
+#s.create_dataset("PartType0/Coordinates",data=pos)
+#s.create_dataset("PartType1/Coordinates",data=pos1)
+#s.create_dataset("PartType1/Velocities",data=vel)
+
+print "one dark particle added"
+    
+
+s.flush()
+s.close()
+            
+

@@ -1,0 +1,17 @@
+#!/bin/bash
+grvdisk="grvdisk"
+grvdisk=$grvdisk$1
+echo $grvdisk
+#mv /scratch/snx3000/hpdeng/gizmout/$grvdisk/snapshot* /scratch/snx3000/hpdeng/gizmobak/$grvdisk
+#rm /scratch/snx3000/hpdeng/gizmout/$grvdisk/grvdisk*
+#cp /users/hpdeng/gizmo/scripts/mhd-ics.hdf5 /scratch/snx3000/hpdeng/gizmout/$grvdisk/init/$grvdisk-ics.hdf5
+cp ../$grvdisk.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /sh2/home/denghpjn457/scratch/$grvdisk/
+cp GIZMO /sh2/home/denghpjn457/scratch/$grvdisk/init
+cd /sh2/home/denghpjn457/scratch/$grvdisk/
+cp /sh2/home/denghpjn457/planetg/job/$grvdisk.job ./
+sbatch $grvdisk.job
+

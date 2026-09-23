@@ -1,0 +1,33 @@
+#!/bin/bash
+#SBATCH -o /zbox/data/hpdeng/gizmout/ngrvmhd2/ngrvmhd2_taper-%j.out
+#SBATCH -J ngrvmhd2
+#SBATCH -p zbox
+#SBATCH --time 0-06:40:00
+#SBATCH --ntasks=256
+#SBATCH --mail-user=hpdeng@physik.uzh.ch
+
+
+
+data=/zbox/data/hpdeng/gizmout/ngrvmhd2
+GIZMO=$data/init/GIZMO
+param=$data/init/ngrvmhd2.params
+cd $data
+
+echo $param
+echo $GIZMO
+echo "***"
+pwd
+
+
+echo ""
+echo "***** LAUNCHING *****"
+echo `date '+%F %H:%M:%S'`
+echo ""
+
+export DATE=`date +%F_%H%M`
+time srun $GIZMO $param 
+
+echo ""
+echo "***** DONE *****"
+echo `date '+%F %H:%M:%S'`
+echo ""

@@ -1,0 +1,39 @@
+#!/bin/bash            # this line only there to enable syntax highlighting in this file
+
+# --------------------------------------- Finite-volume Godunov methods (choose one, or SPH)
+HYDRO_MESHLESS_FINITE_MASS     # solve hydro using the mesh-free Lagrangian (fixed-mass) finite-volume Godunov method
+#HYDRO_MESHLESS_FINITE_VOLUME   # solve hydro using the mesh-free (quasi-Lagrangian) finite-volume Godunov method (control mesh motion with HYDRO_FIX_MESH_MOTION)
+#HYDRO_REGULAR_GRID             # solve hydro equations on a regular (recti-linear) Cartesian mesh (grid) with a finite-volume Godunov method
+## -----------------------------------------------------------------------------------------------------
+# --------------------------------------- Options to explicitly control the mesh motion (for use with the MFV or grid solvers): only set for non-standard behavior
+#BBH
+#DEVELOPER_MODE
+EOS_GAMMA=5./3
+EOS_ENFORCE_ADIABAT=2.107680772150259  # 0.20542140335742512 #0.002734679923407359 #0.01784318323516937 #
+
+KERNEL_FUNCTION=7
+
+MHD_CONSTRAINED_GRADIENT=2     # use CG method (in addition to cleaning, optional!) to maintain low divB: set this value to control how aggressive the div-reduction is:
+MAGNETIC                       # top-level switch for MHD, regardless of which Hydro solver is used
+B_SET_IN_PARAMS            # set initial fields (Bx,By,Bz) in parameter file
+
+NOGRAVITY                # turn off self-gravity (compatible with GRAVITY_ANALYTIC); setting NOGRAVITY gives identical functionality
+#GRAVITY_NOT_PERIODIC           # self-gravity is not periodic, even though the rest of the box is periodic
+## -----------------------------------------------------------------------------------------------------
+GRAVITY_ANALYTIC               # specific analytic gravitational force to use instead of or with self-gravity. If set to a numerical value
+                                #  > 0 (e.g. =1), then BH_CALC_DISTANCES will be enabled, and it will use the nearest BH particle as the center for analytic gravity computations
+#DISKIC
+
+
+
+HAVE_HDF5
+#CLIPPING
+
+DISABLE_ALIGNED_ALLOC
+
+
+#ASSIGN_NEW_IDS                 # assign IDs on startup instead of reading from ICs
+#PREVENT_PARTICLE_MERGE_SPLIT   # don't allow gas particle splitting/merging operations
+#MERGESPLIT_HARDCODE_MAX_MASS=(7.5e-13)
+#MERGESPLIT_HARDCODE_MAX_MASS=(5e-10)
+#OUTPUT_TIMESTEP

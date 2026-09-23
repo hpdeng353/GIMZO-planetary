@@ -1,0 +1,60 @@
+import numpy as np
+import h5py as h5py
+import math as m
+#import pynbody
+#import pynbody.plot.sph as sph
+import matplotlib.pyplot as plt
+
+alpha=[]
+time=[]
+startnum=160
+step=1
+timestep=1
+numbsnaps=161
+fname_base="/scratch/snx3000/hpdeng/gizmout/grvdisk1/init/snapshot_"
+#fname_base ="/home/ics/hpdeng/snapshot_"
+clump=np.load('snapshot_160.txt.npy')
+fname_ext=".hdf5"
+for i in range(startnum,numbsnaps,step):
+    print (i)
+    fname=fname_base+'00'+str(i)+fname_ext
+    if (i>=10): fname=fname_base+'0'+str(i)+fname_ext
+    if (i>=100): fname=fname_base + str(i) + fname_ext
+    s = h5py.File(fname,"r+")
+    density = s["PartType0"]["Density"][:]
+    pos = s["PartType0"]["Coordinates"][:]
+    pos1 = s["PartType1"]["Coordinates"][:]
+    vel=s["PartType0"]["Velocities"][:]
+    vel1=s["PartType1"]["Velocities"][:]
+    mass=s["PartType0"]["Masses"][:]
+    uu=s["PartType0"]["InternalEnergy"][:]
+
+    del s["PartType1"]["Coordinates"]
+    del s["PartType0"]["Coordinates"]
+    del s["PartType1"]["Velocities"]
+    del s["PartType0"]["Velocities"]
+    del s["PartType0"]["InternalEnergy"]
+
+
+    pos[:,0]-=pos1[0][0]
+    pos[:,1]-=pos1[0][1]
+    pos[:,2]-=pos1[0][2]
+    pos1=[[0,0,0],]
+
+    vel[:,0]-=vel1[0][0]
+    vel[:,1]-=vel1[0][1]
+    vel[:,2]-=vel1[0][2]
+    vel1=[[0,0,0],]
+
+    for i in range(1,np.max(clump)+1):
+        if np.sum(mass[np.where(clump==i)])>1e-4:
+            uu[np.where(clump==i)]*=40
+
+    s.create_dataset("PartType0/Coordinates",data=pos)
+    s.create_dataset("PartType1/Coordinates",data=pos1)
+    s.create_dataset("PartType0/Velocities",data=vel)
+    s.create_dataset("PartType1/Velocities",data=vel1)
+    s.create_dataset("PartType0/InternalEnergy",data=uu)
+
+    s.flush()
+    s.close()

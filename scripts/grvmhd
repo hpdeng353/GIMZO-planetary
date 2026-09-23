@@ -1,0 +1,17 @@
+#!/bin/bash
+grvmhd="grvmhd"
+grvmhd=$grvmhd$1
+echo $grvmhd
+#mv /scratch/e1000/hpdeng/gizmout/$grvmhd/snapshot* /scratch/e1000/hpdeng/gizmobak/$grvmhd
+#rm /scratch/e1000/hpdeng/gizmout/$grvmhd/grvmhd*
+#cp /users/hpdeng/gizmo/scripts/mhd-ics.hdf5 /scratch/e1000/hpdeng/gizmout/$grvmhd/init/$grvmhd-ics.hdf5
+cp ../$grvmhd.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /scratch/e1000/hpdeng/gizmout/$grvmhd/
+cp GIZMO /scratch/e1000/hpdeng/gizmout/$grvmhd/init/
+cd /scratch/e1000/hpdeng
+cp /users/hpdeng/gizmo/job/$grvmhd.job ./
+sbatch $grvmhd.job
+rm $grvmhd.job

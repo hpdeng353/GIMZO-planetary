@@ -1,0 +1,13 @@
+#!/bin/bash
+spiraldisk="spiraldisk"
+spiraldisk=$spiraldisk$1
+echo $spiraldisk
+rm /zbox/data/hpdeng/gizmout/$spiraldisk/snapshot*
+#cp /home/ics/hpdeng/gizmo-public/scripts/disk_ics.hdf5 /zbox/data/hpdeng/gizmout/$spiraldisk/init/$spiraldisk-ics.hdf5
+cp ../spiraldisk.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /zbox/data/hpdeng/gizmout/$spiraldisk/
+cp GIZMO /zbox/data/hpdeng/gizmout/$spiraldisk/init/
+sbatch job/$spiraldisk.job

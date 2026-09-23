@@ -1,0 +1,17 @@
+#!/bin/bash
+grvbox="grvbox"
+grvbox=$grvbox$1
+echo $grvbox
+#mv /scratch/snx3000/hpdeng/gizmout/$grvbox/snapshot* /scratch/snx3000/hpdeng/gizmobak/$grvbox
+#rm /scratch/snx3000/hpdeng/gizmout/$grvbox/grvbox*
+#cp /users/hpdeng/gizmo/scripts/box2d.hdf5 /scratch/snx3000/hpdeng/gizmout/$grvbox/init/$grvbox-ics.hdf5
+cp ../$grvbox.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /scratch/snx3000/hpdeng/gizmout/$grvbox/
+cp GIZMO /scratch/snx3000/hpdeng/gizmout/$grvbox/init/
+cd /scratch/snx3000/hpdeng
+cp /users/hpdeng/gizmo/job/$grvbox.job ./
+sbatch $grvbox.job
+rm $grvbox.job

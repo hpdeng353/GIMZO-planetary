@@ -1,0 +1,17 @@
+#!/bin/bash
+noon="noon"
+noon=$noon$1
+echo $noon
+#mv /scratch/snx3000/hpdeng/gizmout/$noon/snapshot* /scratch/snx3000/hpdeng/gizmobak/$noon
+#rm /scratch/snx3000/hpdeng/gizmout/$noon/noon*
+#cp /users/hpdeng/gizmo/scripts/mhd-ics.hdf5 /scratch/snx3000/hpdeng/gizmout/$noon/init/$noon-ics.hdf5
+cp ../$noon.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /sh2/home/denghpjn457/scratch/$noon/
+cp GIZMO /sh2/home/denghpjn457/scratch/$noon/init/
+cd /sh2/home/denghpjn457/scratch/$noon/
+cp /sh2/home/denghpjn457/planetg/job/$noon.job ./
+sbatch $noon.job
+

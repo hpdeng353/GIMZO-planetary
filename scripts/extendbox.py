@@ -1,0 +1,88 @@
+import h5py
+import numpy as np
+
+
+s = h5py.File('box1.hdf5','r+')
+s1= h5py.File('box2.hdf5','r+')
+
+
+npart=s["Header"].attrs["NumPart_ThisFile"]
+Npart=s["Header"].attrs["NumPart_Total"]
+
+npart1=s1["Header"].attrs["NumPart_ThisFile"]
+Npart1=s1["Header"].attrs["NumPart_Total"]
+
+Ngas=npart[0]
+Ngas1=npart1[0]
+
+npart = npart + npart1
+Npart = Npart + Npart1
+
+
+print "nags=",Ngas,"ngas1=",Ngas1
+s["Header"].attrs.modify("NumPart_ThisFile",npart)
+s["Header"].attrs.modify("NumPart_Total",Npart)
+
+id=s["PartType0"]["ParticleIDs"][:]
+id1=s1["PartType0"]["ParticleIDs"][:]
+id1 += Ngas #  !!!!! two new sphere need this.0-N1 0-N2
+
+ids=np.concatenate((id,id1))
+
+
+rho=s["PartType0"]["Density"][:]
+rho1=s1["PartType0"]["Density"][:]
+rho=np.concatenate((rho,rho1))
+
+
+vel=s["PartType0"]["Velocities"][:]
+vel1=s1["PartType0"]["Velocities"][:]
+
+mag=s["PartType0"]["MagneticField"][:]
+mag1=s1["PartType0"]["MagneticField"][:]
+
+pos = s["PartType0"]["Coordinates"][:]
+pos1 = s1["PartType0"]["Coordinates"][:]
+
+
+u=s["PartType0"]["InternalEnergy"][:]
+u1=s1["PartType0"]["InternalEnergy"][:]
+uv_g= np.concatenate((u,u1))
+
+
+mass=s["PartType0"]["Masses"][:]
+mass1=s1["PartType0"]["Masses"][:]
+Masses= np.concatenate((mass,mass1))
+
+
+pos1[:,0]+=1.414
+
+
+pos = np.concatenate((pos,pos1),axis=0)
+mag = np.concatenate((mag,mag1),axis=0)
+
+vel[:,1]+=0.707*1.5
+vel1[:,1]-=0.707*1.5
+vel = np.concatenate((vel,vel1),axis=0)
+
+del s["PartType0"]["ParticleIDs"]
+del s["PartType0"]["Masses"]
+del s["PartType0"]["Coordinates"]
+del s["PartType0"]["Velocities"]
+del s["PartType0"]["InternalEnergy"]
+del s["PartType0"]["Density"]
+del s["PartType0"]["MagneticField"]
+
+s.create_dataset("PartType0/ParticleIDs",data=ids)
+s.create_dataset("PartType0/Masses",data=Masses)
+s.create_dataset("PartType0/Coordinates",data=pos)
+s.create_dataset("PartType0/Velocities",data=vel)
+s.create_dataset("PartType0/InternalEnergy",data=uv_g)
+s.create_dataset("PartType0/Density",data=rho)
+s.create_dataset("PartType0/MagneticField",data=mag)
+    
+
+s.flush()
+s.close()
+            
+

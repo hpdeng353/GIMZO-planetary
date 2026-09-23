@@ -1,0 +1,42 @@
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+
+#B0=np.sqrt(8.*np.pi/400)
+#beta=B0*B0/8./np.pi
+#beta=1./beta
+ample=0.
+
+#s = h5py.File('clump.hdf5','r+')
+s = h5py.File('/scratch/snx3000/hpdeng/temp/snapshot_001.hdf5','r+')
+
+#temp = s["PartType0"]["Temperature"][:]
+rho = s["PartType0"]["Density"][:]
+hsml = s["PartType0"]["SmoothingLength"][:]
+mag= s["PartType0"]["MagneticField"][:]
+#u=s["PartType0"]["InternalEnergy"][:]
+pos= s["PartType0"]["Coordinates"][:]
+del s["PartType0"]["Qy"]
+del s["PartType0"]["Qz"]
+
+hsml/=2.21
+vaz=np.sqrt(mag[:,2]*mag[:,2]/4./3.14/rho)
+vay=np.sqrt(mag[:,1]*mag[:,1]/4./3.14/rho)
+
+
+x0=np.average(pos[:,0])
+y0=np.average(pos[:,1])
+z0=np.average(pos[:,2])
+
+pos[:,0]-=x0
+pos[:,1]-=y0
+pos[:,2]-=z0
+zz=pos[:,2]
+radius=np.sqrt(pos[:,0]*pos[:,0]+pos[:,1]*pos[:,1])
+
+Qy=vay*2*3.14/hsml*np.power(radius,1.5)/np.sqrt(5.34)/1e3
+Qz=vaz*2*3.14/hsml*np.power(radius,1.5)/np.sqrt(5.34)/1e3
+
+#s.create_dataset("PartType0/Radius",data=radius)
+s.create_dataset("PartType0/Qz",data=Qz)
+s.create_dataset("PartType0/Qy",data=Qy)

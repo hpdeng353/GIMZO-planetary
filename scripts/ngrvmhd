@@ -1,0 +1,14 @@
+#!/bin/bash
+ngrvmhd="ngrvmhd"
+ngrvmhd=$ngrvmhd$1
+echo $ngrvmhd
+rm /scratch/daint/hpdeng/gizmout/$ngrvmhd/snapshot*
+#rm /scratch/daint/hpdeng/gizmout/$ngrvmhd/ngrvmhd*
+#cp /users/hpdeng/gizmo/scripts/50m20-2.hdf5 /scratch/daint/hpdeng/gizmout/$ngrvmhd/init/$ngrvmhd-ics.hdf5
+cp ../ngrvmhd.conf ../Config.sh
+cd ../
+make
+mv GIZMO_config.h /scratch/daint/hpdeng/gizmout/$ngrvmhd/
+cp GIZMO /scratch/daint/hpdeng/gizmout/$ngrvmhd/init/
+sbatch job/$ngrvmhd.job
+make clean

@@ -1,0 +1,41 @@
+import h5py
+import numpy as np
+
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/grvdisk1/init/grvdisk1-ics.hdf5','r+')
+
+npart=s["Header"].attrs["NumPart_ThisFile"]
+Npart=s["Header"].attrs["NumPart_Total"]
+Ngas=npart[0]
+
+npart = npart + [0,2,0,0,0,0]
+Npart = Npart + [0,2,0,0,0,0]
+
+s["Header"].attrs.modify("NumPart_ThisFile",npart)
+s["Header"].attrs.modify("NumPart_Total",Npart)
+
+
+
+
+
+
+mass = np.asarray([1.,0.00003])
+pos=[[0.,0.,0.],[4.,0.,0.]]
+vel=[[0.,0.,0.],[0.,0.5,0.]]
+
+"""
+del s["PartType1"]["Masses"]
+del s["PartType1"]["Coordinates"]
+del s["PartType1"]["Velocities"]
+"""
+
+s.create_dataset("PartType1/Masses",data=mass)
+s.create_dataset("PartType1/Coordinates",data=pos)
+s.create_dataset("PartType1/Velocities",data=vel)
+
+print "one dark particle added"
+    
+
+s.flush()
+s.close()
+            
+

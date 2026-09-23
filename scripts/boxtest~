@@ -1,0 +1,17 @@
+#!/bin/bash
+boxtest="boxtest"
+boxtest=$boxtest$1
+echo $boxtest
+#mv /scratch/snx3000/hpdeng/gizmout/$boxtest/snapshot* /scratch/snx3000/hpdeng/gizmobak/$boxtest
+#rm /scratch/snx3000/hpdeng/gizmout/$boxtest/boxtest*
+#cp /users/hpdeng/gizmo/scripts/mhd-ics.hdf5 /scratch/snx3000/hpdeng/gizmout/$boxtest/init/$boxtest-ics.hdf5
+cp ../$boxtest.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /share/home/hpdeng/scratch/gizmout/$boxtest/
+cp GIZMO /share/home/hpdeng/scratch/gizmout/$boxtest/init/
+cd /share/home/hpdeng/scratch/gizmout/$boxtest
+cp /share/home/hpdeng/lgizmo/job/$boxtest.job ./
+bsub < $boxtest.job
+

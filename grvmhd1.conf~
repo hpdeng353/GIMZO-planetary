@@ -1,0 +1,22 @@
+#!/bin/bash
+HYDRO_MESHLESS_FINITE_MASS      # Lagrangian (constant-mass) finite-volume Godunov method
+# --------------------------------------- Kernel Options
+KERNEL_FUNCTION=7             # Choose the kernel function (2=quadratic peak, 3=cubic spline [default], 4=quartic spline, 5=quintic spline, 6=Wendland C2, 7=Wendland C4)
+####################################################################################################
+
+
+####################################################################################################
+# --------------------------------- Polytropic Index of Gas (for an ideal gas law)
+#GAMMA=1.0001                 # if not set and no other (more complex) EOS set, defaults
+
+GAMMA=5./3.
+#NON_IDEAL_EOS
+## -----------------------------------------------------------------------------------------------------
+# --------------------------------- Magneto-Hydrodynamics
+# ---------------------------------  these modules are public, but if used, the user should also cite the MHD-specific GIZMO methods paper
+# ---------------------------------  (Hopkins 2015: 'Accurate, Meshless Methods for Magneto-Hydrodynamics') as well as the standard GIZMO paper
+MAGNETIC                       # master switch for MHD, regardless of which Hydro solver is used
+#B_SET_IN_PARAMS                # set initial fields (Bx,By,Bz) in parameter file
+CONSTRAINED_GRADIENT_MHD=2     # use CG method to maintain low divB: set this value to control how aggressive the div-reduction is:
+HAVE_HDF5
+MHD_B_SET_IN_PARAMS

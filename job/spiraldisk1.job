@@ -1,0 +1,33 @@
+#!/bin/bash
+#SBATCH -o /zbox/data/hpdeng/gizmout/spiraldisk1/spiraldisk1_taper-%j.out
+#SBATCH -J spiraldisk1
+#SBATCH -p zbox
+#SBATCH --time 0-10:20:00
+#SBATCH --ntasks=128
+#SBATCH --mail-user=hpdeng@physik.uzh.ch
+
+
+
+data=/zbox/data/hpdeng/gizmout/spiraldisk1
+GIZMO=$data/init/GIZMO
+param=$data/init/spiraldisk1.params
+cd $data
+
+echo $param
+echo $GIZMO
+echo "***"
+pwd
+
+
+echo ""
+echo "***** LAUNCHING *****"
+echo `date '+%F %H:%M:%S'`
+echo ""
+
+export DATE=`date +%F_%H%M`
+time srun $GIZMO $param 
+
+echo ""
+echo "***** DONE *****"
+echo `date '+%F %H:%M:%S'`
+echo ""

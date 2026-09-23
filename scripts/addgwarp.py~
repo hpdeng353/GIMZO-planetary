@@ -1,0 +1,55 @@
+import h5py
+import pynbody
+import numpy as np
+import matplotlib.pyplot as plt
+import diskpy
+#B0=np.sqrt(8.*np.pi/400)
+#beta=B0*B0/8./np.pi
+#beta=1./beta
+
+ample=1.
+Lx=15.71
+kx=np.pi*2/Lx
+
+#s = h5py.File('clump.hdf5','r+')
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/grvdisk1/init/grvdisk1-ics.hdf5','r+')
+
+#rho = s["PartType0"]["Density"][:]
+
+width=0.03
+center=10.
+aspect=0.1
+vel=s["PartType0"]["Velocities"][:]
+del s["PartType0"]["Velocities"]
+
+pos=s["PartType0"]["Coordinates"]
+del s["PartType0"]["Coordinates"]
+
+
+zz=pos[:,2]
+xx=pos[:,0]
+yy=pos[:,1]
+rad=np.sqrt(pos[:,0]*pos[:,0]+pos[:,1]*pos[:,1])
+tempx=4./3./aspect*np.power(rad, 1.5)
+center=4./3./aspect*np.power(center, 1.5)
+lx=aspect*np.exp(-(tempx-center)**2/2./width/width)
+lz=np.sqrt(1-lx*lx)
+
+vr=-zz*np.power(rad,-1.5)*np.exp(-(tempx-center)**2/2./width/width)*xx/rad+1
+
+pos[:,0]=lz*xx+lx*zz
+pos[:,2]=-lx*xx+lz*zz
+
+vel[:,0]+=xx/rad*vr
+vel[:,1]+=yy/rad*vr
+
+
+
+s.create_dataset("PartType0/Coordinates",data=pos)
+s.create_dataset("PartType0/Velocities",data=vel)
+
+
+
+
+s.flush()
+s.close()

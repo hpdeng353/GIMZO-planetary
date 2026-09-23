@@ -1,0 +1,17 @@
+#!/bin/bash
+sgwarp="sgwarp"
+sgwarp=$sgwarp$1
+echo $sgwarp
+#mv /scratch/snx3000/hpdeng/gizmout/$sgwarp/snapshot* /scratch/snx3000/hpdeng/gizmobak/$sgwarp
+#rm /scratch/snx3000/hpdeng/gizmout/$sgwarp/sgwarp*
+#cp /users/hpdeng/gizmo/scripts/disk-ics.hdf5 /scratch/snx3000/hpdeng/gizmout/$sgwarp/init/$sgwarp-ics.hdf5
+cp ../$sgwarp.conf ../Config.sh
+cd ../
+make clean
+make
+mv GIZMO_config.h /scratch/e1000/hpdeng/gizmout/$sgwarp/
+cp GIZMO /scratch/e1000/hpdeng/gizmout/$sgwarp/init/
+cd /scratch/e1000/hpdeng/gizmout
+cp /users/hpdeng/gizmo/job/$sgwarp.job ./
+sbatch $sgwarp.job
+rm $sgwarp.job

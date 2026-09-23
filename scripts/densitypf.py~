@@ -1,0 +1,109 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import math as m
+Num_Sample=30000
+Power=-1 # negetive
+Rin=2
+Rout=40.0
+
+def rho_profile(num_sample, power,rin,rout):
+    rr=np.arange(0,1.,1./num_sample) * (rout - rin) + rin
+    rho=np.zeros(num_sample)
+    powerfile=np.zeros(num_sample)
+    step = 1./num_sample * (rout -rin)
+    normal=0
+    probability= np.zeros(num_sample)
+    for i in range(0,len(rr)):
+            rho[i] = (m.sqrt(rout/rr[i]) + m.sqrt(rin/rr[i]) - m.sqrt(rout * rin / rr[i] / rr[i]) -1) * m.pow((rr[i]/rin),power)
+            powerfile[i] = m.pow((1+rr[i]/rin),power)
+            normal += step * rho[i]
+            if i < len(rr) - 1 :
+                probability[i+1] = probability[i] + step * rho[i]
+    probability = probability / normal # accumulative probability distribution
+    return rr, rho, powerfile, probability
+
+def Cartisian2polar(pos):
+    pos[0] = m.sqrt(pos[0]*pos[0] + pos[1] * pos[1] + pos[2] * pos[2])
+    pos[1] = m.atan(pos[1], pos[0]) # between -pi to pi
+
+def Polar2Cartisian(radius,theta):
+    xx=np.zeros(len(radius))
+    yy = np.zeros(len(radius))
+    for i in range(0,len(radius)):
+        xx[i] = radius[i] * m.cos(theta[i])
+        yy[i] = radius[i] * m.sin(theta[i])
+    return xx, yy
+
+def Testpowerfile(num_sample,power,rin,rout):
+    radius = np.random.uniform(0,1.0,num_sample)
+    theta = np.random.uniform(-1.0,1.0,num_sample) * m.pi 
+    for i in range(0, len(radius)):
+        radius[i] = m.pow(rout/rin, radius[i]) * rin
+    return radius, theta
+
+def Testrand(num_sample, power, rin, rout):
+    rr = np.arange(0,1.0,1.0/num_sample) * ( rout - rin) + rin
+    step = 1.0/num_sample
+    rho=np.zeros(num_sample)
+    normal=0
+    prob = np.zeros(num_sample)
+    for i in range(0,len(rr)):
+            rho[i] = m.pow((rr[i]/rin),power)#(m.sqrt(rout/rr[i]) + m.sqrt(rin/rr[i]) - m.sqrt(rout * rin / rr[i] / rr[i]) -1) * m.pow((rr[i]/rin),power)
+            normal += step * rho[i]
+            
+    prob = rho / normal
+    radius = np.random.choice(rr,prob) #this doesn't work because array is too large
+    theta = np.random.uniform(-1.0,1.0,num_sample) * m.pi 
+    return radius, theta
+
+def solveline(x1,x2,y1,y2,y):
+    k = (y2-y1)/(x2-x1)
+    x = (y-y1)/k + x1
+    return x
+
+def findloc(arr,val):
+    j=len(arr)
+    i=0
+    trial= j/2
+    while True :
+        if m.fabs(j-i) == 1: 
+            break
+        if arr[trial] < val :
+            i = trial
+            trial = (i+j)/2
+        else:
+            j = trial
+            trial = (i+j)/2
+    return i,j
+
+def findpos(num_sample,probability,rin,rout):
+    uniformarr=np.random.uniform(0,1.0,num_sample)
+    rr = np.arange(0,1.0,1.0/num_sample) * ( rout - rin) + rin
+    radius =np.zeros(num_sample)
+    for i in range(0,len(uniformarr)):
+        index1,index2=findloc(probability,uniformarr[i])
+        radius[i] = solveline(rr[index1],rr[index2],probability[index1],probability[index2],uniformarr[i])
+#        if i<10:
+ #           print uniformarr[i],radius[i],index1,index2
+    theta = np.random.uniform(-1.0,1.0,num_sample) * m.pi 
+    return radius, theta
+
+    
+
+
+
+Radius, Rho, Powerfile, Probability = rho_profile(Num_Sample, Power, Rin, Rout)
+#Radius,Theta = Testrand(Num_Sample, Power, Rin, Rout)
+#Radius,Theta = findpos(Num_Sample,Probability,Rin,Rout)
+#XX, YY = Polar2Cartisian(Radius,Theta)
+
+plt.figure()
+plt.plot(Radius,Powerfile)
+#plt.scatter(XX, YY, s=1)
+plt.axis('equal')
+plt.show()
+
+        
+        
+    
+    

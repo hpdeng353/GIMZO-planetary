@@ -1,0 +1,26 @@
+import h5py
+import numpy as np
+
+
+#oringinal 1.12 Lem
+
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/moon5/init/moon5-ics.hdf5','r+')
+
+rho=s["PartType0"]["Density"][:]
+pos = s["PartType0"]["Coordinates"][:]
+vel=s["PartType0"]["Velocities"][:]
+#vel*=0.71/0.82*1.07
+del s["PartType0"]["Velocities"]
+#del s["PartType0"]["Coordinates"]
+
+vx=np.average(vel[:,0])
+pos[:,0]+=5
+
+
+
+s.create_dataset("PartType0/Velocities",data=vel)
+#s.create_dataset("PartType0/Coordinates",data=pos)
+s.flush()
+s.close()
+            
+

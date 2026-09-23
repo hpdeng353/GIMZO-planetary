@@ -1,0 +1,6 @@
+/users/hpdeng/gizmo/scripts/visit/build/CMakeFiles/rebuild_cache.dir
+/users/hpdeng/gizmo/scripts/visit/build/CMakeFiles/EGIZMODatabase_ser.dir
+/users/hpdeng/gizmo/scripts/visit/build/CMakeFiles/MGIZMODatabase.dir
+/users/hpdeng/gizmo/scripts/visit/build/CMakeFiles/EGIZMODatabase_par.dir
+/users/hpdeng/gizmo/scripts/visit/build/CMakeFiles/IGIZMODatabase.dir
+/users/hpdeng/gizmo/scripts/visit/build/CMakeFiles/edit_cache.dir

@@ -1,0 +1,50 @@
+import h5py
+import numpy as np
+
+Lx=1.414
+Lz=24.
+P0=4*np.pi
+R0=Lx/4.
+betay=25
+betap=1600
+gamma_eos=5.0/3.
+#B0=np.sqrt(8.*np.pi/400)
+#beta=B0*B0/8./np.pi
+#beta=1./beta
+ample1=0.1
+
+
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/grvmhd1/init/grvmhd1-ics.hdf5','r+')
+
+u = s["PartType0"]["InternalEnergy"][:]
+hsml = s["PartType0"]["SmoothingLength"][:]
+
+
+del s["PartType0"]["InternalEnergy"]
+
+pos = s["PartType0"]["Coordinates"][:]
+rr=np.sqrt(pos[:,0]*pos[:,0]+pos[:,1]*pos[:,1]+pos[:,2]*pos[:,2])
+
+u = 0.*u + 1./(gamma_eos-1)
+mag[:,1] = np.sqrt(8*np.pi*(gamma_eos-1.)*rho[:]*u[:]/betay)# - 2*P0/betap*np.sin(np.pi*rr/R0)*np.sin(np.pi*rr/R0))
+mag[:,0] = 0.
+mag[:,2] = 0.
+
+Ngas=len(u)
+
+
+vel[:,0]= ample1*np.random.uniform(-1.,1.,Ngas)
+vel[:,1]+= ample1*np.random.uniform(-1.,1.,Ngas)
+
+u = (1-1./betay)*u  
+
+
+
+
+s.create_dataset("PartType0/MagneticField",data=mag)
+s.create_dataset("PartType0/InternalEnergy",data=u)
+s.create_dataset("PartType0/Velocities",data=vel)
+s.flush()
+s.close()
+            
+

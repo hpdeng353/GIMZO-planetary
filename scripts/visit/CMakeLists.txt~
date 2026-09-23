@@ -1,0 +1,63 @@
+PROJECT(VisItReaderGIZMO)
+
+cmake_minimum_required(VERSION 2.8)
+
+FIND_PACKAGE(ParaView REQUIRED)
+INCLUDE(${PARAVIEW_USE_FILE})
+
+SET(COMMON_SOURCES
+GIZMOPluginInfo.C
+GIZMOCommonPluginInfo.C
+)
+
+SET(LIBI_SOURCES
+GIZMOPluginInfo.C
+)
+
+SET(LIBM_SOURCES
+GIZMOMDServerPluginInfo.C
+${COMMON_SOURCES}
+avtGIZMOFileFormat.C
+)
+
+SET(LIBE_SOURCES
+GIZMOEnginePluginInfo.C
+${COMMON_SOURCES}
+avtGIZMOFileFormat.C
+)
+
+INCLUDE_DIRECTORIES(
+${CMAKE_CURRENT_SOURCE_DIR}
+${HDF5_INCLUDE_DIR}
+${VISIT_COMMON_INCLUDES}
+${VISIT_INCLUDE_DIR}/visit/avt/DBAtts/MetaData
+${VISIT_INCLUDE_DIR}/visit/avt/DBAtts/SIL
+${VISIT_INCLUDE_DIR}/visit/avt/Database/Database
+${VISIT_INCLUDE_DIR}/visit/avt/Database/Formats
+${VISIT_INCLUDE_DIR}/visit/avt/Database/Ghost
+${VISIT_INCLUDE_DIR}/visit/avt/FileWriter
+${VISIT_INCLUDE_DIR}/visit/avt/Filters
+${VISIT_INCLUDE_DIR}/visit/avt/MIR/Base
+${VISIT_INCLUDE_DIR}/visit/avt/MIR/Tet
+${VISIT_INCLUDE_DIR}/visit/avt/MIR/Zoo
+${VISIT_INCLUDE_DIR}/visit/avt/Math
+${VISIT_INCLUDE_DIR}/visit/avt/Pipeline/AbstractFilters
+${VISIT_INCLUDE_DIR}/visit/avt/Pipeline/Data
+${VISIT_INCLUDE_DIR}/visit/avt/Pipeline/Pipeline
+${VISIT_INCLUDE_DIR}/visit/avt/Pipeline/Sinks
+${VISIT_INCLUDE_DIR}/visit/avt/Pipeline/Sources
+${VISIT_INCLUDE_DIR}/visit/avt/VisWindow/VisWindow
+${VISIT_INCLUDE_DIR}/visit/visit_vtk/full
+${VISIT_INCLUDE_DIR}/visit/visit_vtk/lightweight
+${VTKh_INCLUDE_DIRS}
+${VTKM_DIR}/include/vtkm-1.2
+${VTKM_DIR}/include/vtkm-1.2/vtkm/thirdparty/taotuple
+${VTK_INCLUDE_DIRS}
+ADD_VISIT_PLUGIN_READER(VisItReaderGIZMO "1.0"
+  VISIT_READER_NAME "avtGIZMOFileFormat"
+  VISIT_READER_TYPE "STMD"
+  VISIT_READER_FILE_PATTERN "cas"
+  SERVER_SOURCES ${SOURCES}
+  )
+
+TARGET_LINK_LIBRARIES(VisItReaderGIZMO vtkVisItAVTAlgorithms)

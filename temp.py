@@ -1,0 +1,23 @@
+# coding: utf-8
+t=np.arange(0,len(hk1d))*10/6.28
+plt.plot(t,hk1d,color="blue",label=r"grvhd1-$\delta$-disk")
+plt.plot(t,hk1s,color="blue",linestyle="--",label=r"grvhd1-$\delta$-star")
+hk2d=np.loadtxt("/users/hpdeng/gizmo/scripts/diag/k2hddisk.txt")
+hk2s=np.loadtxt("/users/hpdeng/gizmo/scripts/diag/k2hdstar.txt")
+hk2s-=hk2s[0]
+hk2d
+hk2d=hk2d[0]-hk2d
+t=np.arange(0,len(hk2d))*10/6.28
+plt.plot(t,hk2d,color="red",label=r"grvhd2-$\delta$-disk")
+plt.plot(t,hk2s,color="red",linestyle="--",label=r"grvhd2-$\delta$-star")
+k1d=np.loadtxt("/users/hpdeng/gizmo/scripts/diag/k1disk.txt")
+k1s=np.loadtxt("/users/hpdeng/gizmo/scripts/diag/k1star.txt")
+k1d=np.sort(k1d[-1]-k1d)
+k1s=k1s-k1s[0]
+t=np.arange(0,len(k1d))*10/6.28
+plt.plot(t,k1d,color="green",label=r"grvmhd1-$\delta$-disk")
+plt.plot(t,k1s,color="green",linestyle="--",label=r"grvmhd1-$\delta$-star")
+k2d=np.loadtxt("/users/hpdeng/gizmo/scripts/diag/k2disk.txt")
+k2s=np.loadtxt("/users/hpdeng/gizmo/scripts/diag/k2star.txt")
+k2d=np.sort(k2d[-1]-k2d)
+k2s=k2s-k2s[0]

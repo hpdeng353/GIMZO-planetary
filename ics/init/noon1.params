@@ -1,0 +1,93 @@
+% Example compile-time options:
+%  (HYDRO_MESHLESS_FINITE_MASS is optional, replace with your
+%   choice of hydro/mhd options)
+%
+%        HYDRO_MESHLESS_FINITE_MASS
+%        TWODIMS 
+%        NOGRAVITY 
+%        ANALYTIC_GRAVITY
+%        GAMMA=(5.0/3.0)
+%        HAVE_HDF5  
+%
+% Make sure you go into the file gravity/analytic_gravity.h and un-comment the line:
+%
+%  //GravAccel_KeplerianTestProblem(); // keplerian disk with boundaries for test problem
+%
+% within the routine “add_analytic_gravitational_forces”. Otherwise the code won’t know 
+% what to use for the analytic gravitational forces.
+%
+%
+
+InitCondFile                       /share/home/hpdeng/scratch/gizmout/noon1/init/noon1-ics
+OutputDir                          /share/home/hpdeng/scratch/gizmout/noon1
+RestartFile                        restart
+SnapshotFileBase                   snapshot
+OutputListFilename                 output_times.txt
+ICFormat                           3
+SnapFormat                         3
+TimeLimitCPU                       864000
+CpuTimeBetRestartFile              3500
+ResubmitOn                         0
+ResubmitCommand                    ./resub
+MaxMemSize                         3500
+PartAllocFactor                    5.
+BufferSize                         80
+TimeBegin                          0
+TimeMax                            30
+ComovingIntegrationOn              0
+Omega0                             0
+OmegaLambda                        0
+OmegaBaryon                        0
+HubbleParam                        1
+BoxSize                            800
+OutputListOn                       0
+TimeBetSnapshot                    0.02
+TimeOfFirstSnapshot                0
+TimeBetStatistics                  0.1
+NumFilesPerSnapshot                1
+NumFilesWrittenInParallel          1
+ErrTolIntAccuracy                  0.002
+CourantFac                         0.025
+MaxRMSDisplacementFac              0.125
+MaxSizeTimestep                    0.1
+MinSizeTimestep                    1e-8
+ErrTolTheta                        0.7
+ErrTolForceAcc                     0.0025
+TreeDomainUpdateFrequency          0.005
+DesNumNgb                          80
+MaxNumNgbDeviation                 0.1
+ArtBulkViscConst                   1
+UnitLength_in_cm                   6.37869e8
+UnitMass_in_g                      9.56072e25
+UnitVelocity_in_cm_per_s           1.0e5
+UnitMagneticField_in_gauss         1
+GravityConstantInternal            0
+MaxHsml                            2
+betacool			   4.
+MinGasHsmlFractional               0
+Analytic_Mass			   1.
+Acradius			   0.25
+Analytic_Soft			   0.1
+SofteningGas                       0.02
+SofteningHalo                      0.1
+SofteningDisk                      0.1
+SofteningBulge                     0.1
+SofteningStars                     0.1
+SofteningBndry                     0.1
+SofteningGasMaxPhys                0.1
+SofteningHaloMaxPhys               0.07
+SofteningDiskMaxPhys               0.003
+SofteningBulgeMaxPhys              0.003
+SofteningStarsMaxPhys              0.003
+SofteningBndryMaxPhys              0.003
+InitGasTemp			   0
+MinGasTemp                         0.
+DivBcleaningParabolicSigma         0.2 
+DivBcleaningHyperbolicSigma        1.0 
+DivBcleaningQ                      0.5
+BiniX                              0
+BiniY                              0
+BiniZ                              0.1
+EosTable			   eostable
+BulkViscosityCoeff		   0.5
+ShearViscosityCoeff		   0.25

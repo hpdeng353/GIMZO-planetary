@@ -1,0 +1,74 @@
+import h5py
+import numpy as np
+
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/grvdisk6/init/grvdisk6-ics.hdf5','r+')
+#s = h5py.File('snapshot_000.hdf5','r+')
+
+
+npart=s["Header"].attrs["NumPart_ThisFile"]
+Npart=s["Header"].attrs["NumPart_Total"]
+Ngas=npart[0]
+
+npart = npart + [0,1,0,0,0,0]
+Npart = Npart + [0,1,0,0,0,0]
+
+s["Header"].attrs.modify("NumPart_ThisFile",npart)
+s["Header"].attrs.modify("NumPart_Total",Npart)
+
+pos = s["PartType0"]["Coordinates"][:]
+pos1 = s["PartType1"]["Coordinates"][:]
+
+pos[:,0] -= pos1[0][0]
+pos[:,1] -= pos1[0][1]
+pos[:,2] -= pos1[0][2]
+
+Radius = pos[:,0] * pos[:,0] + pos[:,1] * pos[:,1]
+Radius = np.sqrt(Radius)
+
+#gmass=s["PartType0"]["Masses"][:]
+#gmass *=2.
+#diskmass=np.sum(gmass[np.where(Radius<1.)])
+#gmass[np.where(Radius<1.)]=0.
+
+x=np.cos(1000*0.3536)
+y=np.sin(1000*0.3536)
+vx= 0 - 0.35356*np.sin(1000*0.35356)
+vy= np.sqrt(1/100.)#0.35356*np.cos(1000*0.35356)
+#print "eliminated disk mass=", diskmass
+
+starmass = s["PartType1"]["Masses"][0]
+#starmass=0.5
+print "star mass=", starmass
+
+vel0=s["PartType0"]["Velocities"]
+
+vel0[:,1]+=0.09219
+
+ids = np.asarray([50000000,50000001])
+mass = np.asarray([0.33,0.00031127])
+pos1=[[0,0,0.],[-8.197215,-4.729636,1.8243725]]
+vel=[[0,0.,0],[0.1125,-0.083,-0.0243]]
+
+#del s["PartType0"]["Masses"]
+del s["PartType1"]["Masses"]
+#del s["PartType0"]["Coordinates"]
+del s["PartType1"]["Velocities"]
+del s["PartType1"]["Coordinates"]
+del s["PartType1"]["ParticleIDs"]
+#del s["PartType0"]["Velocities"]
+
+#s.create_dataset("PartType0/Masses",data=gmass)
+s.create_dataset("PartType1/Masses",data=mass)
+s.create_dataset("PartType1/ParticleIDs",data=ids)
+#s.create_dataset("PartType0/Coordinates",data=pos)
+s.create_dataset("PartType1/Coordinates",data=pos1)
+s.create_dataset("PartType1/Velocities",data=vel)
+#s.create_dataset("PartType0/Velocities",data=vel0)
+
+print "one dark particle added"
+    
+
+s.flush()
+s.close()
+            
+

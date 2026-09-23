@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --nodes=8               # 机器节点数量
+#SBATCH --ntasks-per-node=32        # 每个机器上的核心数量
+#SBATCH --ntasks=256                 # 总核心数（总运行核心）nique
+#SBATCH --partition=g2_user          # 队列分区且必须指定正确分区（会被告知）
+#SBATCH --job-name=noon2            # 作业名称（推荐修改一下，以便区分）
+#SBATCH --output=/sh2/home/denghpjn457/scratch/noon2/noon2-%j.out       # 正常日志输出 (%j 参数值为 jobId)
+#SBATCH --error=/sh2/home/denghpjn457/scratch/noon2/noon2-%j.err        # 错误日志输出 (%j 参数值为 jobId)
+
+##############################################
+#          Software Envrironment             #
+##############################################
+unset I_MPI_PMI_LIBRARY
+export I_MPI_JOB_RESPECT_PROCESS_PLACEMENT=0
+export OMP_NUM_THREADS=1
+
+module load intel/2022 
+module load zlib
+module load intelmpi/2022
+module load hdf5/1.12.2_intel2022
+module load gsl/2.7.1_intel2022
+
+##############################################
+#               Run job                      #
+##############################################
+data=/sh2/home/denghpjn457/scratch/noon2
+GIZMO=$data/init/GIZMO
+param=$data/init/noon2.params
+
+cd $data
+
+mpirun  $GIZMO $param 

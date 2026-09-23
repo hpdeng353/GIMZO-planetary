@@ -1,0 +1,42 @@
+import h5py
+import pynbody
+import numpy as np
+import matplotlib.pyplot as plt
+import diskpy
+#B0=np.sqrt(8.*np.pi/400)
+#beta=B0*B0/8./np.pi
+#beta=1./beta
+
+ample=0.1
+Lx=90.496
+kx=np.pi*2/Lx
+gamma_eos=1.001
+#s = h5py.File('clump.hdf5','r+')
+s = h5py.File('/scratch/snx3000/hpdeng/gizmout/boxtest3/init/boxtest3-ics.hdf5','r+')
+
+#rho = s["PartType0"]["Density"][:]
+
+vel=s["PartType0"]["Velocities"][:]
+del s["PartType0"]["Velocities"]
+
+pos=s["PartType0"]["Coordinates"]
+del s["PartType0"]["Coordinates"]
+
+xx=pos[:,0]-Lx/2.
+pos[:,2]+=ample*np.cos(kx*xx)
+vel[:,0]=ample*(pos[:,2]-12)*np.cos(kx*xx)
+vel[:,2]=ample*np.sin(kx*xx)
+vel[:,1]+=0.5*ample*(pos[:,2]-12)*np.sin(kx*xx) #?? wrong??
+
+#vel[:,0]+=ample*(pos[:,2]-12)
+
+
+s.create_dataset("PartType0/Coordinates",data=pos)
+s.create_dataset("PartType0/Velocities",data=vel)
+
+
+
+
+
+s.flush()
+s.close()

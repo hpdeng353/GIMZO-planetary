@@ -1,0 +1,52 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import math as m
+Rin=0.2
+Rout=10
+Rho_Power = -3.0
+X0=4.*Rin
+#Sharp=0.05*X0
+Sharp = (Rin-X0)/np.log(1./(1.0-m.pow((Rout/Rin),Rho_Power))-1.)
+print Sharp
+def taper1(x,x0,sharp=0.1,): #default setting center of taper x0=3*rin
+    f = 1.0 - 1.0/(m.exp((x-x0)/sharp)+1.)
+    return f
+
+def taper2(x,rin,rout):
+    f = m.sqrt(rin/x) + m.sqrt(rout/x)-m.sqrt(rin*rout/x/x)-1.
+    return f
+    
+    
+def dr_taper1(x,x0,sharp=0.1):
+    dfdr = 1.0/(m.exp((x-x0)/sharp)+1.)/(m.exp((x-x0)/sharp)+1.)/sharp*m.exp((x-x0)/sharp)
+    return dfdr
+
+def dr_taper2(x,rin,rout):
+    dfdr = -0.5*(m.sqrt(rin)+m.sqrt(rout))*m.pow(x,-1.5)+m.sqrt(rin*rout)/x/x
+    return dfdr
+    
+rr=np.arange(Rin,Rout,0.0001)
+shape=np.zeros(len(rr))
+dshape=np.zeros(len(rr))
+rhoprofile=np.zeros(len(rr))
+for i in range(0,len(rr)):
+    shape[i] = taper1(rr[i],X0,Sharp)
+#    shape[i] = taper2(rr[i], Rin, Rout)
+    dshape[i] = dr_taper1(rr[i],X0,Sharp)*rr[i]/shape[i]
+#    dshape[i] = dr_taper2(rr[i], Rin, Rout)*rr[i]/shape[i]
+    rhoprofile[i]=m.pow((rr[i]/Rin),Rho_Power)*shape[i]
+
+#rhofloor=rhoprofile[0]*0.99
+#for i in range(0,len(rr)):
+#    rhoprofile[i] -= rhofloor
+
+plt.figure()
+plt.plot(rr,shape)
+
+plt.figure()
+plt.plot(rr,dshape)
+
+plt.figure()
+plt.plot(rr,rhoprofile)
+
+plt.show()
