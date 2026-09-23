@@ -1054,6 +1054,12 @@ extern struct global_data_all_processes
   double InitGasU;		/*!< the same, but converted to thermal energy per unit mass */
   double MinGasTemp;		/*!< may be used to set a floor for the gas temperature */
   double MinEgySpec;		/*!< the minimum allowed temperature expressed as energy per unit mass */
+#ifdef MOONRELAX
+  double RelaxTimescale;                /*!< linear drag timescale tau in dv/dt = -v/tau; 0 disables relaxation */
+  double RelaxUntil;                    /*!< drag is applied while Time < RelaxUntil */
+  double SphericalRelaxUntil;           /*!< radial-constraint (spherical) stage ends at this time; 0 disables it */
+  double SphericalRelaxReleaseDuration; /*!< smoothstep release of tangential acceleration after the spherical stage */
+#endif
 #ifdef SPHAV_ARTIFICIAL_CONDUCTIVITY
   double ArtCondConstant;
 #endif

@@ -247,8 +247,19 @@ void do_the_kick(int i, integertime tstart, integertime tend, integertime tcurre
 #endif
             }
             dp[j] += mass_pred * P[i].GravAccel[j] * dt_gravkick;
-            P[i].Vel[j] += dp[j] / mass_new; /*mass_new correctly accounts for mass change if its allowed */
 	}
+
+#ifdef MOONRELAX
+        /* artificial relaxation for settling planet initial conditions: linear
+           drag plus an optional spherical radial-constraint stage. Applied to
+           the momentum kick of active gas particles only, so individual
+           timesteps keep their own cadence. */
+        if(P[i].Type == 0)
+            moonrelax_modify_kick(i, dp, mass_pred, dt_hydrokick);
+#endif
+
+	for(j = 0; j < 3; j++)
+            P[i].Vel[j] += dp[j] / mass_new; /*mass_new correctly accounts for mass change if its allowed */
 
 
  

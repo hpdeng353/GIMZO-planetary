@@ -619,8 +619,8 @@ void eq_relax2(void);
 void eq_relax3(void);
 #endif
 #ifdef MOONRELAX
-void eq_relax4(void);
-#endif // GLASS
+void moonrelax_modify_kick(int i, double dp[3], double mass, double dt);
+#endif // MOONRELAX
 #ifdef NEWTEST
 void eq_relax3(void);
 #endif

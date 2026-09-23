@@ -80,9 +80,8 @@ void run(void)
 
 
 
-#ifdef MOONRELAX
-	eq_relax4();
-#endif
+/* MOONRELAX relaxation now acts inside do_the_kick (moonrelax_modify_kick),
+   scaled by each particle's own active timestep -- no per-loop call here. */
 
         find_timesteps();		/* find-timesteps */
         
@@ -1414,33 +1413,72 @@ void eq_relax2(void)
 #endif
 
 #ifdef MOONRELAX
-void eq_relax4(void)
+/* Artificial relaxation for settling WoMa planet realizations, ported from
+   SPH-EXA's relaxation scheme (sphexa docs/relaxation.md) and adapted to the
+   KDK kick. Called from do_the_kick for active gas particles only.
+
+   Linear drag dv/dt = -v/RelaxTimescale is applied while Time < RelaxUntil.
+   During the spherical stage (Time < SphericalRelaxUntil) the particle
+   velocity and the applied momentum kick are projected onto the radius vector
+   about the coordinate origin, i.e. the particle is kinematically constrained
+   to its radial ray. Over [SphericalRelaxUntil, SphericalRelaxUntil +
+   SphericalRelaxReleaseDuration] the tangential part of the kick is restored
+   with the cubic smoothstep w = 3s^2 - 2s^3 (zero slope at both ends);
+   velocity is NOT reprojected during the release window, and the velocity is
+   never multiplied by w -- that would add a second, unintended damping. After
+   the release window, ordinary 3D damping continues until RelaxUntil.
+
+   The drag removes kinetic energy deliberately (it is not thermalized). The
+   projection origin is fixed at (0,0,0): single, non-rotating, origin-centered
+   planets only -- never enable the spherical stage for impact runs.
+
+   dp is the momentum kick mass*acceleration*dt about to be applied; dt is the
+   particle's own (hydro) kick interval. */
+void moonrelax_modify_kick(int i, double dp[3], double mass, double dt)
 {
-  int i,j;
-  double dampfactor=0.999;
-  double rxy=0, vr=0,vphi=0,omega=0;
-  double nx,ny,nz;
+  int j;
+  double w = 1.0; /* tangential acceleration weight: 1 = full 3D dynamics */
 
-  for(i = 0; i < NumPart; i++)
+  if(All.RelaxTimescale <= 0.0)
+    return;
+
+  if(All.Time < All.SphericalRelaxUntil)
+    w = 0.0;
+  else if(All.SphericalRelaxReleaseDuration > 0.0 &&
+          All.Time < All.SphericalRelaxUntil + All.SphericalRelaxReleaseDuration)
     {
-      if(P[i].Type == 0)
-        {
-          rxy=sqrt(P[i].Pos[0]*P[i].Pos[0] + P[i].Pos[1]*P[i].Pos[1]);
-          nx=P[i].Pos[0]/rxy;
-          ny=P[i].Pos[1]/rxy;
-
-          vr=P[i].Vel[0]*nx + P[i].Vel[1]*ny; 
-	  vphi=omega*rxy;
-
-	  P[i].Vel[0] =0.- vphi*ny + vr  * nx *dampfactor; 
-	  P[i].Vel[1] =vphi*nx + vr  * ny *dampfactor; 
-	  P[i].Vel[2] *= dampfactor;
-	}
+      double s = (All.Time - All.SphericalRelaxUntil) / All.SphericalRelaxReleaseDuration;
+      w = s * s * (3.0 - 2.0 * s);
     }
+
+  if(w < 1.0)
+    {
+      double r2 = P[i].Pos[0]*P[i].Pos[0] + P[i].Pos[1]*P[i].Pos[1] + P[i].Pos[2]*P[i].Pos[2];
+      if(r2 > 0.0)
+        {
+          if(w == 0.0)
+            {
+              /* spherical stage: keep only the radial velocity component */
+              double vrad = (P[i].Vel[0]*P[i].Pos[0] + P[i].Vel[1]*P[i].Pos[1] + P[i].Vel[2]*P[i].Pos[2]) / r2;
+              for(j = 0; j < 3; j++)
+                {
+                  P[i].Vel[j] = vrad * P[i].Pos[j];
+                  SphP[i].VelPred[j] = P[i].Vel[j];
+                }
+            }
+          /* project the applied kick: keep its radial part, scale the tangential part by w */
+          double dp_rad = (dp[0]*P[i].Pos[0] + dp[1]*P[i].Pos[1] + dp[2]*P[i].Pos[2]) / r2;
+          for(j = 0; j < 3; j++)
+            dp[j] = dp_rad * P[i].Pos[j] + w * (dp[j] - dp_rad * P[i].Pos[j]);
+        }
+    }
+
+  if(All.Time < All.RelaxUntil)
+    for(j = 0; j < 3; j++)
+      dp[j] -= mass * P[i].Vel[j] / All.RelaxTimescale * dt;
 }
 
-
-#endif // GLASS
+#endif // MOONRELAX
 
 
 
