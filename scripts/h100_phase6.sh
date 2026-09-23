@@ -77,10 +77,10 @@ python3 scripts/makeplanet_planetg.py \
     --primary-particle-count 5000000 \
     --secondary-resolution-trials 12 \
     --secondary-thin-overshoot-max 0.08 \
-    --primary-output $WORK/primary_091.h5 \
-    --secondary-output $WORK/secondary_011.h5 \
+    --primary-output $WORK/primary_091.hdf5 \
+    --secondary-output $WORK/secondary_011.hdf5 \
     --force
-ls -lh $WORK/primary_091.h5 $WORK/secondary_011.h5
+ls -lh $WORK/primary_091.hdf5 $WORK/secondary_011.hdf5
 EOF
     local job
     job=$(sbatch --parsable "$WORK/makeplanet.slurm")
@@ -138,8 +138,8 @@ EOF
 stage_relax() {
     local dep=""
     [[ -f "$WORK/makeplanet.jobid" ]] && dep=$(cat "$WORK/makeplanet.jobid")
-    relax_one "$WORK/primary_091.h5" primary "$dep"
-    relax_one "$WORK/secondary_011.h5" secondary "$dep"
+    relax_one "$WORK/primary_091.hdf5" primary "$dep"
+    relax_one "$WORK/secondary_011.hdf5" secondary "$dep"
     squeue -u "$USER" -o "%.8i %.20j %.8T %.10M %R"
 }
 
