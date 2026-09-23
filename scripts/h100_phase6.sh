@@ -97,7 +97,7 @@ relax_one() {
     grep -vE "^(InitCondFile|OutputDir|TimeMax|TimeBetSnapshot|EosTable|RelaxTimescale|RelaxUntil|SphericalRelaxUntil|SphericalRelaxReleaseDuration)[[:space:]]" \
         impact-out/init/noon1.params > "$rundir/relax.params"
     cat >> "$rundir/relax.params" <<EOF
-InitCondFile                       $ic
+InitCondFile                       ${ic%.hdf5}
 OutputDir                          $rundir/
 TimeMax                            $RELAX_TMAX
 TimeBetSnapshot                    0.1
