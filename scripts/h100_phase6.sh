@@ -20,7 +20,7 @@ ROOT=$(pwd)
 TABLE=$ROOT/impact-out/eos/rock_planet_aneos_62_63.spheos
 WORK=$ROOT/runs/091_011
 LOG=$WORK/logs
-NTASKS=${NTASKS:-64}
+NTASKS=${NTASKS:-96}
 RELAX_TMAX=${RELAX_TMAX:-3.0}
 
 CONDA_INIT=/home/apps/anaconda3/2024.02/etc/profile.d/conda.sh
@@ -50,6 +50,7 @@ stage_eostest() {
 
 stage_build() {
     echo "=== [build] full planetg build (noon1.conf, SYSTYPE=h100, all cores)"
+    py_env   # gsl-config lives in the conda env (GSL_ROOT resolves from it)
     bash build_h100.sh 2>&1 | tee "$WORK/build.log"
     echo "=== [build] PASS: $(ls -la GIZMO)"
 }
@@ -117,8 +118,11 @@ set -euo pipefail
 module load gcc
 module load openmpi
 module load hdf5
-module load gsl 2>/dev/null || true
 export OMP_NUM_THREADS=1
+# GSL comes from the conda env (no system module on this cluster)
+source $CONDA_INIT
+conda activate sphexa-planet
+export LD_LIBRARY_PATH=\$CONDA_PREFIX/lib:\${LD_LIBRARY_PATH:-}
 cd $rundir
 mpirun -np $NTASKS $ROOT/GIZMO $rundir/relax.params
 EOF
