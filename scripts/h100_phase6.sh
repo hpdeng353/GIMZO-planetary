@@ -41,7 +41,7 @@ stage_eostest() {
         echo "=== [eostest] C and Python sample evaluations AGREE"
     else
         echo "=== [eostest] MISMATCH between C and Python readers -- investigate before continuing" >&2
-        return 1
+        exit 1
     fi
     grep -q "RESULT: all checks passed" "$WORK/eostest_c.out"
     grep -q "RESULT: all checks passed" "$WORK/eostest_py.out"

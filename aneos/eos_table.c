@@ -744,9 +744,15 @@ EosTableState eos_table_evaluate(const EosTable *table, double rho, double u,
     double fr = (logRho - rhoAxis[ir]) / (rhoAxis[ir + 1] - rhoAxis[ir]);
     if (m->nativeGrid)
     {
-        /* native grids interpolate the axes linearly in rho, not in log rho */
+        /* native grids interpolate the axes linearly in rho, not in log rho.
+           Use the CLAMPED density (exp of the clamped logRho) so out-of-range
+           states sit exactly on the boundary row -- using the raw rho would
+           silently extrapolate (fr < 0 or fr > 1), giving negative pressures
+           below range and runaway pressures above range. Matches sphexa's
+           tabulated_eos.cpp (rhoInterpolated) and tabulated_eos_gpu.cu. */
         double rho0 = exp(rhoAxis[ir]), rho1 = exp(rhoAxis[ir + 1]);
-        fr = (rho - rho0) / (rho1 - rho0);
+        double rhoInterpolated = exp(logRho);
+        fr = (rhoInterpolated - rho0) / (rho1 - rho0);
     }
 
     double energyCoordinate = m->nativeGrid ? u : logU;
