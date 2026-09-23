@@ -20,7 +20,7 @@ ROOT=$(pwd)
 TABLE=$ROOT/impact-out/eos/rock_planet_aneos_62_63.spheos
 WORK=$ROOT/runs/091_011
 LOG=$WORK/logs
-NTASKS=${NTASKS:-96}
+NTASKS=${NTASKS:-48}   # node1: 48 physical cores (96 with HT); nomultithread caps at 48
 RELAX_TMAX=${RELAX_TMAX:-3.0}
 
 CONDA_INIT=/home/apps/anaconda3/2024.02/etc/profile.d/conda.sh
@@ -74,7 +74,7 @@ conda activate sphexa-planet
 python3 scripts/makeplanet_planetg.py \
     --primary-mass-earth 0.91 \
     --secondary-mass-earth 0.11 \
-    --high-resolution-count 5000000 \
+    --primary-particle-count 5000000 \
     --primary-output $WORK/primary_091.h5 \
     --secondary-output $WORK/secondary_011.h5 \
     --force
