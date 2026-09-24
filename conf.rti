@@ -1,0 +1,19 @@
+#!/bin/bash            # this line only there to enable syntax highlighting in this file
+# REMIX iron/rock Rayleigh-Taylor test (Sandnes et al. 2024 Sec 4.6, Fig. 12):
+# rock (mat 62) below / iron (mat 63) above, hydrostatic on the tabulated
+# ANEOS EOS, constant vertical gravity, periodic in x/z, reflecting walls in y.
+# Box: Lx=0.05, Ly=0.1 (=LONG_Y*BoxSize) in R_earth units; thin z slab.
+# Same hydro method, kernel and EOS machinery as production (noon1.conf).
+
+PERIODIC                        # periodic in x and z; y is reflecting (below)
+REFLECT_BND_Y                   # y walls replace the paper's fixed boundary layers
+NOGRAVITY                       # self-gravity off; external constant field instead
+ANALYTIC_GRAVITY                # dispatches to GravAccel_ConstantY via the macro below
+RTI_CONST_GRAVITY_Y=-63.0729    # g = -9.9 m/s^2 in code units (LU=6.371e6 m, VU=1 km/s)
+LONG_Y=2                        # box y extent = 2 * BoxSize = 0.1 code units
+HYDRO_MESHLESS_FINITE_MASS      # Lagrangian (constant-mass) finite-volume Godunov method
+KERNEL_FUNCTION=6               # Wendland C2, same as noon1.conf production
+HAVE_HDF5                       # HDF5 I/O
+EOS_ANEOS                       # giant-impact master switch: auto-enables EOS_TABULATED,
+                                # EOS_CARRIES_TEMPERATURE/ENTROPY, MOON, MOONRELAX, READ_IMAT,
+                                # CLIPPING and PREVENT_PARTICLE_MERGE_SPLIT (see eos/eos.h)

@@ -18,6 +18,7 @@ void GravAccel_KeplerianTestProblem(void);
 void GravAccel_GrowingDiskPotential(void);
 void GravAccel_StaticNFW(void);
 void GravAccel_RayleighTaylorTest(void);
+void GravAccel_ConstantY(void);
 void GravAccel_ShearingSheet(void);
 void GravAccel_PaczynskyWiita(void);
 void pseudo_newtonian(void);
@@ -26,6 +27,9 @@ void GravAccel_Uq16(void);
 void add_analytic_gravitational_forces()
 {
 #ifdef ANALYTIC_GRAVITY
+#ifdef RTI_CONST_GRAVITY_Y
+    GravAccel_ConstantY();              // constant vertical (y) field for Rayleigh-Taylor box tests (REMIX Fig. 12)
+#else
 #ifdef SHEARING_BOX
     GravAccel_ShearingSheet();            // adds coriolis and centrifugal terms for shearing-sheet approximation
   //  GravAccel_Uq16();  Uq16
@@ -43,6 +47,25 @@ void add_analytic_gravitational_forces()
     //GravAccel_StaticNFW();              // spherical NFW profile
     //GravAccel_PaczynskyWiita();         // Paczynsky-Wiita pseudo-Newtonian potential
 #endif
+#endif
+#endif
+}
+
+
+/* constant vertical (y) acceleration for Rayleigh-Taylor box tests; the value
+   (in code units) is set at compile time via RTI_CONST_GRAVITY_Y in the config
+   (e.g. conf.rti). Zeroes the gravity first: this replaces self-gravity, which
+   is off in these NOGRAVITY test builds. */
+void GravAccel_ConstantY()
+{
+#ifdef RTI_CONST_GRAVITY_Y
+    int i;
+    for(i = FirstActiveParticle; i >= 0; i = NextActiveParticle[i])
+    {
+        P[i].GravAccel[0] = 0;
+        P[i].GravAccel[1] = RTI_CONST_GRAVITY_Y;
+        P[i].GravAccel[2] = 0;
+    }
 #endif
 }
 

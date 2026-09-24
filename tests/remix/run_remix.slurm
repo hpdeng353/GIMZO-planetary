@@ -7,7 +7,7 @@
 #SBATCH --output=/home/hpdeng/planetg/runs/remix/logs/%x-%j.out
 #SBATCH --error=/home/hpdeng/planetg/runs/remix/logs/%x-%j.err
 # Submit with:  sbatch --export=CASE=square_em tests/remix/run_remix.slurm
-# CASE in {square_em, square_es, khi_em, khi_es}
+# CASE in {square_em, square_es, khi_em, khi_es, rti_em, rti_es}
 set -euo pipefail
 module load gcc
 module load openmpi
@@ -25,6 +25,8 @@ case "$CASE" in
   square_es) BIN=GIZMO_square; IC=$ICS/square_equal_spacing_gizmo.h5;  BASE=square.params ;;
   khi_em)    BIN=GIZMO_khi;    IC=$ICS/khi_iron_rock_gizmo.h5;         BASE=khi.params ;;
   khi_es)    BIN=GIZMO_khi;    IC=$ICS/khi_iron_rock_es_gizmo.h5;      BASE=khi.params ;;
+  rti_em)    BIN=GIZMO_rti;    IC=$ICS/rti_iron_rock_em_gizmo.h5;      BASE=rti.params ;;
+  rti_es)    BIN=GIZMO_rti;    IC=$ICS/rti_iron_rock_es_gizmo.h5;      BASE=rti.params ;;
   *) echo "unknown CASE $CASE" >&2; exit 2 ;;
 esac
 

@@ -54,8 +54,11 @@ def main() -> int:
 
     # sanity
     assert n == len(m) == len(u) == len(vx), "ragged IC arrays"
-    if not (np.all(np.isfinite(coords)) and np.all(coords >= -1e-12) and np.all(coords <= boxsize + 1e-12)):
-        raise SystemExit("coordinates outside [0, BoxSize] after shift")
+    spans = np.array([lx, ly, lz])
+    for k, name in enumerate("xyz"):
+        if not (np.all(np.isfinite(coords[:, k])) and coords[:, k].min() >= -1e-12
+                and coords[:, k].max() <= spans[k] + 1e-12):
+            raise SystemExit(f"coordinates outside [0, L_{name}] after shift")
     if not (np.all(m > 0) and np.all(np.isfinite(m))):
         raise SystemExit("non-positive or non-finite masses")
     if not (np.all(u > 0) and np.all(np.isfinite(u))):

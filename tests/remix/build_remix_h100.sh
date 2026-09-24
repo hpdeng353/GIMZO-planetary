@@ -15,5 +15,9 @@ CONFIG=conf.khi bash build_h100.sh
 mv GIZMO GIZMO_khi
 echo "=== GIZMO_khi built ==="
 
+CONFIG=conf.rti bash build_h100.sh
+mv GIZMO GIZMO_rti
+echo "=== GIZMO_rti built ==="
+
 bash build_h100.sh   # restore production Config.sh (noon1.conf) + GIZMO
 echo "=== production GIZMO restored ==="
