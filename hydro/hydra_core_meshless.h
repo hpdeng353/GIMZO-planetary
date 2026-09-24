@@ -359,9 +359,12 @@
             if((Riemann_out.P_M<0)||(isnan(Riemann_out.P_M)))
             {
                 /* Both the second-order and the particle-centered solve failed. Under
-                   EOS_GENERAL each attempt already fell back to Rusanov internally, so the
-                   whole fallback ladder is exhausted. The old "zero out the velocities and
-                   retry" step is removed: it manufactured positive pressures by erasing the
+                   EOS_GENERAL each attempt already fell back to Rusanov internally, and all
+                   linearized (PVRS) pressure estimates now carry an arithmetic-mean floor for
+                   the zero-pressure-EOS regime, so reaching this point means the estimate was
+                   non-finite or the state itself was unphysical (invalid entry state, vacuum
+                   approach, or a genuine solver pathology). The old "zero out the velocities
+                   and retry" step is removed: it manufactured positive pressures by erasing the
                    physical relative kinetic energy, producing severe local energy errors.
                    Instead print the complete face state and stop, rather than propagate NaN. */
 #ifdef EOS_GENERAL

@@ -493,6 +493,18 @@ void Riemann_solver_Rusanov(struct Input_vec_Riemann Riemann_vec, struct Riemann
     }
     P_M = 0.5 * ((Riemann_vec.L.p + Riemann_vec.R.p) + (v_line_L-v_line_R) * rho_csnd_hat);
     S_M = 0.5 * ((v_line_R+v_line_L) + (Riemann_vec.L.p-Riemann_vec.R.p) / (rho_csnd_hat));
+    /* same PVRS ram-term overshoot as in the HLLC chain: near a zero-pressure EOS
+       state (e.g. uncompressed cold rock) the linearized rho*cs*dv term greatly
+       overestimates the true ram pressure rho*dv^2 (cs >> |dv|), driving P_M
+       negative although the exact contact pressure is a small positive number.
+       Floor to the arithmetic mean pressure and bulk velocity; the result is
+       guaranteed positive when both input pressures are positive. A non-finite
+       or still-nonpositive P_M keeps its sign so the caller stops. */
+    if(!(P_M > 0) && isfinite(P_M))
+    {
+        P_M = 0.5 * (Riemann_vec.L.p + Riemann_vec.R.p);
+        S_M = 0.5 * (v_line_L + v_line_R);
+    }
     Riemann_out->P_M = P_M;
     Riemann_out->S_M = S_M;
 #ifdef HYDRO_MESHLESS_FINITE_VOLUME
@@ -610,8 +622,20 @@ void get_wavespeeds_and_pressure_star(struct Input_vec_Riemann Riemann_vec, stru
                 Riemann_out->S_M = 0.5*(v_line_R+v_line_L) + 2.0*(PT_L-PT_R)/((Riemann_vec.L.rho+Riemann_vec.R.rho)*(cs_L+cs_R));
                 double S_plus = DMAX(DMAX(fabs(v_line_L - cs_L), fabs(v_line_R - cs_R)), DMAX(fabs(v_line_L + cs_L), fabs(v_line_R + cs_R)));
                 S_L=-S_plus; S_R=S_plus; if(Riemann_out->S_M<S_L) Riemann_out->S_M=S_L; if(Riemann_out->S_M>S_R) Riemann_out->S_M=S_R;
-                /* no masking here: a non-positive or non-finite P_M is an explicit failure,
-                   the caller's fallback (Rusanov, then diagnostics+stop) decides what to do */
+                if(!(Riemann_out->P_M > 0) && isfinite(Riemann_out->P_M))
+                {
+                    /* Near the zero-pressure point of a general EOS (e.g. uncompressed cold
+                       rock) the linearized ram term rho*cs*dv greatly overestimates the true
+                       ram pressure rho*dv^2 (cs >> |dv|), so every PVRS-style estimate can go
+                       negative while the exact contact pressure is a small positive number.
+                       Floor to the arithmetic mean pressure and bulk velocity: physically
+                       sound in this regime, and guaranteed positive since both input
+                       pressures were validated positive. */
+                    Riemann_out->P_M = 0.5*(PT_L + PT_R);
+                    Riemann_out->S_M = 0.5*(v_line_L + v_line_R);
+                }
+                /* only a non-finite or still-nonpositive result is a genuine failure;
+                   it keeps its sign (P_M<=0) so the caller's fallback fires */
             }
         }
     }
