@@ -27,8 +27,9 @@ Documentation:
 
 Build (H100 cluster): `bash build_h100.sh` (SYSTYPE=h100; needs MPI, HDF5,
 GSL, FFTW as described below). Binary EOS tables (`*.spheos`) are not
-tracked in git; regenerate them from MANEOS ASCII tables with the converter
-described in `docs/impact_pipeline.md`.
+tracked in git; regenerate them deterministically from EOSlib M-ANEOS tables
+with `scripts/make_eos_table.py` and verify the result against the provenance
+checksums in `docs/impact_pipeline.md` section 0.
 
 All upstream GIZMO copyright notices and attribution apply; cite Hopkins 2015
 (arXiv:1409.7395) and Springel (2005) as below, plus this fork's impact

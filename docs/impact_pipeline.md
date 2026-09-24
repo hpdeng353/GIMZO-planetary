@@ -12,6 +12,38 @@ are Python scripts in `scripts/`; compile and run on the cluster (H100:
   mantle, 63 = iron core). The bulk float fields are shared read-only by all
   ranks on a node through mmap and the page cache. The unaligned density and
   energy axes are copied privately, about 34.3 MiB per rank for this table.
+
+### Generating the EOS table (the `.spheos` file is not in the git repo)
+
+The runtime table (103 MB) exceeds git hosting limits and is therefore not
+tracked. Regenerate it deterministically from the EOSlib M-ANEOS tables
+(`MANEOStable_*.in`, the binary tables distributed with M-ANEOS / EOSlib —
+they are not part of this repository either):
+
+```bash
+python scripts/make_eos_table.py \
+    --forsterite MANEOStable_fosterite.in --iron MANEOStable_iron.in \
+    -o impact-out/eos/rock_planet_aneos_62_63.spheos
+```
+
+The build is byte-deterministic. Verify your inputs and output against the
+provenance checksums of this project (SHA256):
+
+| file | bytes | SHA256 |
+|---|---|---|
+| MANEOStable_fosterite.in | 71852328 | 2354ea8348bd6b0e8c5806256cc0b6a8cf3c083ef78b4380a1ce463297681d30 |
+| MANEOStable_iron.in | 71852328 | 694e76a725e1e59c337ad8d3f9edd151273ab920a904b26bb37d325a3eeb10b8 |
+| rock_planet_aneos_62_63.spheos | 107763396 | 8b73314c275b946497f2cb791ac1386d1472cc03c7f219661006c05415db0bb3 |
+
+Then validate the table independently of the C reader:
+
+```bash
+python scripts/test_eos_table.py impact-out/eos/rock_planet_aneos_62_63.spheos
+```
+
+and, after compiling planetg, cross-check the production C interpolation path
+round-trip with the `aneos/test_eos_table.c` unit test (see `scripts/h100_phase6.sh`
+for how it is built and run on the cluster).
 - Runtime parameters (see `impact-out/init/noon1.params`):
   - `EosTable        eos/rock_planet_aneos_62_63.spheos` — relative paths
     resolve against `OutputDir` (which must keep its trailing `/`); absolute
