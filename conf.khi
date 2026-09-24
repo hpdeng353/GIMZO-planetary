@@ -1,0 +1,15 @@
+#!/bin/bash            # this line only there to enable syntax highlighting in this file
+# REMIX iron/rock Kelvin-Helmholtz test (Sandnes et al. 2024 Fig. 9):
+# forsterite (mat 62) / iron (mat 63) slab shear in a periodic box, pressure
+# equilibrium on the tabulated ANEOS EOS, no gravity. Same hydro method,
+# kernel and EOS machinery as production (noon1.conf) so the test exercises
+# the exact impact-simulation code path (EOS_ANEOS master switch).
+
+PERIODIC                        # cubic periodic box; KHI slab occupies thin z in [0,0.14]
+NOGRAVITY                       # pure hydro test
+HYDRO_MESHLESS_FINITE_MASS      # Lagrangian (constant-mass) finite-volume Godunov method
+KERNEL_FUNCTION=6               # Wendland C2, same as noon1.conf production
+HAVE_HDF5                       # HDF5 I/O
+EOS_ANEOS                       # giant-impact master switch: auto-enables EOS_TABULATED,
+                                # EOS_CARRIES_TEMPERATURE/ENTROPY, MOON, MOONRELAX, READ_IMAT,
+                                # CLIPPING and PREVENT_PARTICLE_MERGE_SPLIT (see eos/eos.h)
