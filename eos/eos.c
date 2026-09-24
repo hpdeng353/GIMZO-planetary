@@ -98,11 +98,11 @@ else
 
 #ifdef EOS_ANEOS
 
-    /* binary .spheos table: per-query unit conversion, table shared per node */
+    /* binary .spheos table: per-query unit conversion; bulk fields are mmap-shared per node */
     {
       int imat = SphP[i].imat;
       EosTableState st;
-      static int num_out_of_range = 0; /* per-rank diagnostic counter */
+      static unsigned long long num_out_of_range = 0; /* per-rank diagnostic counter */
 
       if(imat < 0 || imat >= EosTableSpxNumMats)
         {
@@ -123,18 +123,35 @@ else
 
       if(st.status != EOS_TABLE_SUCCESS)
         {
-          num_out_of_range++;
-          if(num_out_of_range <= 10 || num_out_of_range % 100000 == 0)
-            printf("EOS_ANEOS: task %d particle %d (imat=%d): rho=%g u=%g code units -> status=%s (occurrence %d)\n",
-                   ThisTask, i, imat, Particle_density_for_energy_i(i), SphP[i].InternalEnergyPred,
-                   eos_table_status_string(st.status), num_out_of_range);
-        }
-    }
+          int clampable = st.status >= EOS_TABLE_DENSITY_BELOW_RANGE &&
+                          st.status <= EOS_TABLE_ENERGY_ABOVE_RANGE;
+          int accepted_invalid_input = st.status == EOS_TABLE_INVALID_INPUT;
+          if(!clampable && !accepted_invalid_input)
+            {
+              printf("EOS_ANEOS FATAL: task=%d particle=%d id=%llu imat=%d material=%d "
+                     "rho=%g u=%g P=%g cs=%g T=%g S=%g status=%s\n",
+                     ThisTask, i, (unsigned long long)P[i].ID, imat, EosTableSpxMatId[imat],
+                     Particle_density_for_energy_i(i), SphP[i].InternalEnergyPred,
+                     st.pressure, st.soundSpeed, st.temperature, st.entropy,
+                     eos_table_status_string(st.status));
+              fflush(stdout);
+              endrun(1);
+            }
 
-    if(press< 1e-15)
-    {
-      press=1e-15;
-      SphP[i].SoundSpeed=1e-7;
+          unsigned long long occurrence;
+#ifdef _OPENMP
+#pragma omp atomic capture
+          occurrence = ++num_out_of_range;
+#else
+          occurrence = ++num_out_of_range;
+#endif
+          if(occurrence <= 10 || occurrence % 100000 == 0)
+            printf("EOS_ANEOS: task %d particle %d id=%llu (imat=%d material=%d): "
+                   "rho=%g u=%g code units -> status=%s (occurrence %llu)\n",
+                   ThisTask, i, (unsigned long long)P[i].ID, imat, EosTableSpxMatId[imat],
+                   Particle_density_for_energy_i(i), SphP[i].InternalEnergyPred,
+                   eos_table_status_string(st.status), occurrence);
+        }
     }
 #endif   
     
@@ -258,8 +275,6 @@ double INLINE_FUNC Particle_effective_soundspeed_i(int i)
 
 
 }
-
-
 
 
 

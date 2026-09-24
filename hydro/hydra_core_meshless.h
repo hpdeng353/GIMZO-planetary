@@ -193,12 +193,19 @@
         reconstruct_face_states(kernel.sound_i, local.Gradients.SoundSpeed, kernel.sound_j, SphP[j].Gradients.SoundSpeed,
                                 distance_from_i, distance_from_j, &Riemann_vec.L.cs, &Riemann_vec.R.cs, recon_mode);
 #endif // hpdeng note we are not reconstructing eosgamm and eospsi will this cause a problem?
-#if defined(EOS_GENERAL) && defined(EOS_ANEOS)
-        /* Thermodynamic consistency at the interface (general EOS): rho, u and v are the
-           only independent reconstructed quantities; re-derive P and cs from the EOS at the
-           reconstructed (rho,u), with each side's own material ID. A reconstructed state
-           that lands outside the table or is non-finite reverts to the particle-centered
-           (first-order) state, which is EOS-consistent by construction. Note Q_L=j, Q_R=i. */
+#ifdef EOS_GENERAL
+        /* A table lookup for both sides of every interacting pair is prohibitively expensive:
+           with ~100 neighbours it changes one EOS lookup per particle into O(100) lookups.
+           The default therefore follows the standard GIZMO general-EOS treatment and uses
+           the independently slope-limited rho, P, u and cs face values. Their inconsistency
+           is of reconstruction order in smooth flow. If reconstruction produces an invalid
+           thermodynamic state, revert that complete side to its EOS-consistent cell-centred
+           state rather than mixing reconstructed and cell-centred quantities. Note Q_L=j,
+           Q_R=i.
+
+           EOS_REEVALUATE_FACE_STATES retains the expensive exact-consistency mode for
+           verification tests and difficult material interfaces, but is deliberately opt-in. */
+#if defined(EOS_ANEOS) && defined(EOS_REEVALUATE_FACE_STATES)
         {
             EosTableState st_face;
             st_face = eos_table_evaluate_code(EosTableSpx, Riemann_vec.L.rho, Riemann_vec.L.u,
@@ -228,6 +235,32 @@
                 Riemann_vec.R.p = local.Pressure; Riemann_vec.R.cs = kernel.sound_i;
             }
         }
+#else
+        {
+            int invalid_L = !(Riemann_vec.L.rho > 0) || !(Riemann_vec.L.p > 0) ||
+                            !(Riemann_vec.L.cs > 0) || !isfinite(Riemann_vec.L.rho) ||
+                            !isfinite(Riemann_vec.L.p) || !isfinite(Riemann_vec.L.u) ||
+                            !isfinite(Riemann_vec.L.cs);
+            int invalid_R = !(Riemann_vec.R.rho > 0) || !(Riemann_vec.R.p > 0) ||
+                            !(Riemann_vec.R.cs > 0) || !isfinite(Riemann_vec.R.rho) ||
+                            !isfinite(Riemann_vec.R.p) || !isfinite(Riemann_vec.R.u) ||
+                            !isfinite(Riemann_vec.R.cs);
+            if(invalid_L)
+            {
+                Riemann_vec.L.rho = SphP[j].Density;
+                Riemann_vec.L.u   = SphP[j].InternalEnergyPred;
+                Riemann_vec.L.p   = SphP[j].Pressure;
+                Riemann_vec.L.cs  = kernel.sound_j;
+            }
+            if(invalid_R)
+            {
+                Riemann_vec.R.rho = local.Density;
+                Riemann_vec.R.u   = local.InternalEnergyPred;
+                Riemann_vec.R.p   = local.Pressure;
+                Riemann_vec.R.cs  = kernel.sound_i;
+            }
+        }
+#endif
 #endif
         for(k=0;k<3;k++)
         {

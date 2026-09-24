@@ -1,27 +1,15 @@
-.hg/
-.embedded-git/
-maneos/
+# build artifacts
 *.o
+GIZMO
+/GIZMO
+impact-out/init/GIZMO
+
+# EOS binary tables (regenerate from MANEOS ASCII via scripts; see docs/impact_pipeline.md)
+*.spheos
+
+# run outputs
+runs/
+impact-out/snapshots/
+impact-out/logs/
 *.pyc
 __pycache__/
-core
-*.h5
-*.hdf5
-*.zip
-*.dat
-eostable/*.txt
-ics/eos/*.txt
-impact-out/eos/eostable*.txt
-impact-out/eos/rho*.txt
-impact-out/eos/temp*.txt
-impact-out/eos/testeos*.txt
-scripts/checkrho
-scripts/checkt
-scripts/rho1
-scripts/S1
-scripts/Si1
-scripts/temp1
-scripts/xx1
-scripts/yy1
-scripts/diag/
-scripts/moon-analysis/*.txt

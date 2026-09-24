@@ -1795,6 +1795,22 @@ void init_mat_table(void)
       endrun(1);
     }
 
+#ifdef EOS_CARRIES_ENTROPY
+  /* EOS_ANEOS stores entropy in every snapshot and MOONRELAX may invert it.
+     Reject an incompatible v1/v2 table at startup instead of silently
+     writing zero entropy or failing after the simulation has started. */
+  {
+    int k;
+    for(k = 0; k < EosTableSpxNumMats; k++)
+      if(eos_table_has_entropy(EosTableSpx, (uint32_t)EosTableSpxMatId[k]) != 1)
+        {
+          printf("EOS_ANEOS: material %d (imat=%d) has no entropy field, but "
+                 "EOS_CARRIES_ENTROPY is enabled\n", EosTableSpxMatId[k], k);
+          endrun(1);
+        }
+  }
+#endif
+
   /* the table is cgs-backed; the code specific-energy unit is UnitVelocity^2 */
   {
     double energyUnitCgs = All.UnitVelocity_in_cm_per_s * All.UnitVelocity_in_cm_per_s;
@@ -1828,4 +1844,3 @@ void init_mat_table(void)
     }
 }
 #endif
-

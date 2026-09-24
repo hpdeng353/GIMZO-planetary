@@ -210,6 +210,12 @@ int main(int argc, char **argv)
         EosTableUnits units;
         if (eos_table_units_cgs(&units, 0.36838, 1.0e10) == 0)
         {
+            if (eos_table_invert_energy_code(table, 1.0, 1.0,
+                                             eos_table_material_id(table, 0), units, NULL) != EOS_TABLE_INVALID_INPUT)
+            {
+                printf("  FAIL: null code-unit inversion output was not rejected\n");
+                ++failures;
+            }
             for (uint32_t i = 0; i < numMaterials; ++i)
             {
                 uint32_t mid2 = eos_table_material_id(table, i);

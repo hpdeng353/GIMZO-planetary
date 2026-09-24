@@ -223,7 +223,7 @@ typedef struct
 
 static uint32_t cursor_u32(ByteCursor *c)
 {
-    if (c->pos + 4 > c->size) { c->error = 1; return 0; }
+    if (c->pos > c->size || c->size - c->pos < 4) { c->error = 1; return 0; }
     uint32_t value;
     memcpy(&value, c->data + c->pos, 4);
     c->pos += 4;
@@ -232,7 +232,7 @@ static uint32_t cursor_u32(ByteCursor *c)
 
 static uint64_t cursor_u64(ByteCursor *c)
 {
-    if (c->pos + 8 > c->size) { c->error = 1; return 0; }
+    if (c->pos > c->size || c->size - c->pos < 8) { c->error = 1; return 0; }
     uint64_t value;
     memcpy(&value, c->data + c->pos, 8);
     c->pos += 8;
@@ -242,15 +242,21 @@ static uint64_t cursor_u64(ByteCursor *c)
 /* Copy n doubles out of the cursor into a fresh malloc'd array. */
 static double *cursor_doubles(ByteCursor *c, size_t n)
 {
-    if (n == 0 || c->pos + n * sizeof(double) > c->size || n > SIZE_MAX / sizeof(double))
+    if (n == 0 || n > SIZE_MAX / sizeof(double))
     {
         c->error = 1;
         return NULL;
     }
-    double *out = (double *)malloc(n * sizeof(double));
+    size_t bytes = n * sizeof(double);
+    if (c->pos > c->size || bytes > c->size - c->pos)
+    {
+        c->error = 1;
+        return NULL;
+    }
+    double *out = (double *)malloc(bytes);
     if (!out) { c->error = 1; return NULL; }
-    memcpy(out, c->data + c->pos, n * sizeof(double));
-    c->pos += n * sizeof(double);
+    memcpy(out, c->data + c->pos, bytes);
+    c->pos += bytes;
     return out;
 }
 
@@ -259,13 +265,19 @@ static double *cursor_doubles(ByteCursor *c, size_t n)
  * descriptors are 16 bytes, axes are 8-byte doubles. */
 static const float *cursor_floats(ByteCursor *c, size_t n)
 {
-    if (n == 0 || c->pos + n * sizeof(float) > c->size || n > SIZE_MAX / sizeof(float))
+    if (n == 0 || n > SIZE_MAX / sizeof(float))
+    {
+        c->error = 1;
+        return NULL;
+    }
+    size_t bytes = n * sizeof(float);
+    if (c->pos > c->size || bytes > c->size - c->pos)
     {
         c->error = 1;
         return NULL;
     }
     const float *out = (const float *)(const void *)(c->data + c->pos);
-    c->pos += n * sizeof(float);
+    c->pos += bytes;
     return out;
 }
 
@@ -378,7 +390,7 @@ EosTable *eos_table_load(const char *path)
             }
             uint64_t valueCount64     = (uint64_t)m->nRho * m->nU;
             uint64_t energyAxisCount  = m->rowDependentU ? valueCount64 : (uint64_t)m->nU;
-            if (valueCount64 > SIZE_MAX / sizeof(float))
+            if (valueCount64 > SIZE_MAX / sizeof(float) || energyAxisCount > SIZE_MAX / sizeof(double))
             {
                 fprintf(stderr, "eos_table: %s material %u grid is too large\n", path, m->materialId);
                 goto fail;
@@ -426,6 +438,11 @@ EosTable *eos_table_load(const char *path)
             goto fail;
         }
 
+        if (maxMaterialId == UINT32_MAX || (uint64_t)maxMaterialId + 1u > SIZE_MAX / sizeof(int))
+        {
+            fprintf(stderr, "eos_table: %s material ID range is too large\n", path);
+            goto fail;
+        }
         table->indexSize     = maxMaterialId + 1;
         table->materialIndex = (int *)malloc((size_t)table->indexSize * sizeof(int));
         if (!table->materialIndex) goto fail;
@@ -944,6 +961,7 @@ int eos_table_invert_energy(const EosTable *table, double rho, double entropyTar
 int eos_table_invert_energy_code(const EosTable *table, double rho, double entropyTargetCode,
                                  uint32_t materialId, EosTableUnits units, double *uOutCode)
 {
+    if (!uOutCode) return EOS_TABLE_INVALID_INPUT;
     double uTable = 0.0;
     int status = eos_table_invert_energy(table, rho * units.densityToTable,
                                          entropyTargetCode / units.entropyFromTable,

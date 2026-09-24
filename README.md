@@ -1,3 +1,43 @@
+# GIMZO-planetary (planetg)
+
+A planetary-science fork of the public (GPL) GIZMO code for giant-impact
+simulations with tabulated equations of state. The meshless finite-volume
+(MFM/MFV) hydrodynamics, tree gravity, and domain decomposition are unchanged
+from upstream GIZMO; this fork adds and maintains the impact-physics layer:
+
+- **Tabulated ANEOS EOS** (`aneos/`, `eos/`): memory-mapped binary `.spheos`
+  tables shared by all MPI ranks on a node through the page cache; per-query
+  code↔cgs unit conversion; multi-material support via `EosTable` /
+  `EosTableMatIds` (particle `Materials` block, `READ_IMAT`).
+- **HLLC Riemann solver for general EOS** (`hydro/reimann.h`): EOS-aware
+  validity checks, star-region guards, and an arithmetic-mean floor for the
+  zero-pressure regime of cold condensed matter, where linearized (PVRS)
+  pressure estimates overshoot. `EOS_REEVALUATE_FACE_STATES` (opt-in)
+  re-queries the table at every face for verification runs.
+- **Planet construction and relaxation** (see `docs/impact_pipeline.md`):
+  WoMa-profile initial models, isentropic relaxation with the entropy anchor
+  read from the IC (`AnchorEntropy` block), and the impact setup used for the
+  0.91+0.11 Earth-mass study. The giant-impact master switch is `EOS_ANEOS`
+  in `noon1.conf`.
+
+Documentation:
+- `docs/impact_pipeline.md` — end-to-end recipe: EOS table generation, planet
+  building, relaxation, impact setup, QC scripts.
+- `noon1.conf` — annotated production configuration.
+
+Build (H100 cluster): `bash build_h100.sh` (SYSTYPE=h100; needs MPI, HDF5,
+GSL, FFTW as described below). Binary EOS tables (`*.spheos`) are not
+tracked in git; regenerate them from MANEOS ASCII tables with the converter
+described in `docs/impact_pipeline.md`.
+
+All upstream GIZMO copyright notices and attribution apply; cite Hopkins 2015
+(arXiv:1409.7395) and Springel (2005) as below, plus this fork's impact
+pipeline where used.
+
+---
+
+# Original GIZMO README
+
 Welcome!
 
 This is GIZMO (beta version: likely to be Google-style and stay in beta for quite some time).

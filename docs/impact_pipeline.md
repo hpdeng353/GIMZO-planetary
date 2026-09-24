@@ -9,17 +9,34 @@ are Python scripts in `scripts/`; compile and run on the cluster (H100:
 
 - EOS table: a binary `.spheos` file, e.g.
   `impact-out/eos/rock_planet_aneos_62_63.spheos` (materials 62 = forsterite
-  mantle, 63 = iron core). One file is shared read-only by all ranks on a node
-  (mmap + page cache).
+  mantle, 63 = iron core). The bulk float fields are shared read-only by all
+  ranks on a node through mmap and the page cache. The unaligned density and
+  energy axes are copied privately, about 34.3 MiB per rank for this table.
 - Runtime parameters (see `impact-out/init/noon1.params`):
   - `EosTable        eos/rock_planet_aneos_62_63.spheos` — relative paths
     resolve against `OutputDir` (which must keep its trailing `/`); absolute
     paths are used as-is.
   - `EosTableMatIds  62,63` — maps IC material index `imat` 0 → table material
-    62, `imat` 1 → 63. At startup each rank prints the mapped material bounds;
-    a particle whose `imat` has no mapping is a fatal error.
-- Compile flags (noon1.conf): `EOS_ANEOS`, `EOS_CARRIES_TEMPERATURE`,
-  `READ_IMAT`, `MOONRELAX`; `READ_HSML` stays **off**.
+  62, `imat` 1 → 63. At startup each rank prints the mapped material bounds;
+    a particle whose `imat` has no mapping is a fatal error. A table missing
+    entropy is also rejected because the impact build writes entropy and may
+    use it for fixed-entropy relaxation.
+- Compile flag: `EOS_ANEOS`. It is the giant-impact master switch and enables
+  temperature, entropy, material input, clipping, and `MOONRELAX`; `READ_HSML`
+  stays **off**.
+- Riemann face states use slope-limited reconstructed density, pressure,
+  internal energy and sound speed by default. Invalid/non-finite reconstructed
+  states fall back as a complete side to the EOS-consistent particle-centred
+  state. `EOS_REEVALUATE_FACE_STATES` can instead re-query ANEOS at every face
+  for verification, but should not be used for production: it performs two
+  table interpolations per interacting pair and is typically several times
+  slower.
+
+EOS range violations are clamped to the nearest table boundary and reported
+with a rate-limited diagnostic. Non-finite input uses the finite table safety
+fallback. An invalid table state is fatal. Valid low-pressure states retain
+their table pressure and sound speed; the legacy hard-coded pressure/sound
+speed floor is not applied to the `.spheos` branch.
 
 ## 1. Build the planets — `scripts/makeplanet_planetg.py`
 

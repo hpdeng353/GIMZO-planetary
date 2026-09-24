@@ -6,10 +6,11 @@
  * pressures in dyn/cm^2 (=erg/cm^3), sound speeds in cm/s, temperatures in K,
  * specific entropies in erg/g/K.
  *
- * The table file is memory-mapped read-only (MAP_SHARED), so one 100+ MB
- * table is shared by all MPI ranks on the same node through the page cache;
- * only a small per-material index is allocated per process. If mmap is not
- * available the file is read into a single malloc'd buffer instead.
+ * The table file is memory-mapped read-only (MAP_SHARED), so its bulk float
+ * fields are shared by all MPI ranks on the same node through the page cache.
+ * Density and energy axes are copied per process because the on-disk payload
+ * does not guarantee double alignment. If mmap is unavailable the complete
+ * file is read into a malloc'd buffer instead.
  *
  * Host must be little-endian (x86_64, AArch64-LE).
  */
