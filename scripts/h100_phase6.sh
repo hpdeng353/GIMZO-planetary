@@ -79,6 +79,7 @@ python3 scripts/makeplanet_planetg.py \
     --secondary-thin-overshoot-max 0.08 \
     --primary-output $WORK/primary_091.hdf5 \
     --secondary-output $WORK/secondary_011.hdf5 \
+    --s0-eos-table $TABLE \
     --force
 ls -lh $WORK/primary_091.hdf5 $WORK/secondary_011.hdf5
 EOF

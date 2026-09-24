@@ -46,6 +46,134 @@ DEFAULT_UNIT_LENGTH_CM = 6.37869e8
 DEFAULT_UNIT_MASS_G = 9.56072e25
 DEFAULT_UNIT_VELOCITY_CMS = 1.0e5
 
+SPHEOS_MAGIC = b"SPXEOST1"
+SPHEOS_FORMAT_VERSION = 3
+SPHEOS_ENDIAN_MARKER = 0x01020304
+
+
+def _fnv1a64(data: bytes) -> int:
+    value = 14695981039346656037
+    for byte in data:
+        value ^= byte
+        value = (value * 1099511628211) & 0xFFFFFFFFFFFFFFFF
+    return value
+
+
+def load_spheos_tables(path) -> dict[int, dict[str, np.ndarray]]:
+    """Read an SPH-EXA checksummed v3 .spheos file (native-temperature grid layout).
+
+    Returns {material_id: {"log_rho": f8[nrho], "energy": f8[nrho, ntemp],
+    "log_temp": f4[nrho, ntemp], "entropy": f4[nrho, ntemp]}} with cgs units
+    (g/cm^3, erg/g, K, erg/g/K). Mirrors makeplanet_sphexa.py.
+    """
+    import struct
+
+    path = Path(path)
+    if not path.is_file():
+        raise ValueError(f"s0 EOS table not found: {path}")
+    data = path.read_bytes()
+    if len(data) < 32:
+        raise ValueError(f"{path}: truncated .spheos header")
+    magic, version, endian, payload_size, checksum = struct.unpack("<8sIIQQ", data[:32])
+    if magic != SPHEOS_MAGIC or version != SPHEOS_FORMAT_VERSION or endian != SPHEOS_ENDIAN_MARKER:
+        raise ValueError(f"{path}: not a v{SPHEOS_FORMAT_VERSION} .spheos table")
+    payload = data[32:]
+    if payload_size != len(payload) or checksum != _fnv1a64(payload):
+        raise ValueError(f"{path}: .spheos payload size or checksum mismatch")
+
+    (count,) = struct.unpack_from("<I", payload, 0)
+    offset = 4
+    tables: dict[int, dict[str, np.ndarray]] = {}
+    for _ in range(count):
+        material_id, nrho, ntemp, _flags = struct.unpack_from("<IIII", payload, offset)
+        offset += 16
+        log_rho = np.frombuffer(payload, "<f8", nrho, offset).copy()
+        offset += nrho * 8
+        energy = np.frombuffer(payload, "<f8", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
+        offset += nrho * ntemp * 4  # log pressure (f4), unused here
+        offset += nrho * ntemp * 4  # log sound speed (f4), unused here
+        log_temp = np.frombuffer(payload, "<f4", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
+        offset += nrho * ntemp * 4
+        entropy = np.frombuffer(payload, "<f4", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
+        offset += nrho * ntemp * 4
+        tables[int(material_id)] = {
+            "log_rho": log_rho,
+            "energy": energy,
+            "log_temp": log_temp,
+            "entropy": entropy,
+        }
+    if offset != len(payload):
+        raise ValueError(f"{path}: .spheos payload has trailing or missing data")
+    return tables
+
+
+def spheos_entropy_cgs(table: dict[str, np.ndarray], rho_cgs: np.ndarray, u_cgs: np.ndarray) -> np.ndarray:
+    """Entropy S(rho, u) [erg/g/K] on a native-T .spheos material grid.
+
+    Identical algorithm to planetg's C eos_table_evaluate on native-T grids:
+    for each particle the energy row pair bracketing log(rho) is inverted
+    T(u) along the temperature axis, entropy is interpolated at that T, and
+    the two rows are blended linearly in log(rho). Out-of-grid values are
+    clamped to the grid edges (WoMa planet states sit far inside the table).
+    Mirrors makeplanet_sphexa.py.
+    """
+    log_rho = table["log_rho"]
+    energy = table["energy"]
+    log_temp = table["log_temp"]
+    entropy = table["entropy"]
+    nrho, ntemp = energy.shape
+    logt_axis = log_temp[0].astype(np.float64)
+    if not np.allclose(log_temp, logt_axis, rtol=1e-6, atol=1e-9):
+        raise ValueError("entropy inversion requires a row-independent temperature grid")
+
+    lr = np.log(np.clip(rho_cgs, np.exp(log_rho[0]), np.exp(log_rho[-1])))
+    i0 = np.clip(np.searchsorted(log_rho, lr) - 1, 0, nrho - 2)
+    w = np.clip((lr - log_rho[i0]) / (log_rho[i0 + 1] - log_rho[i0]), 0.0, 1.0)
+
+    s0 = np.empty(rho_cgs.shape, dtype=np.float64)
+    s1 = np.empty(rho_cgs.shape, dtype=np.float64)
+    for row_target, out in ((0, s0), (1, s1)):
+        out[:] = np.nan
+        for row in np.unique(i0):
+            sel = i0 == row
+            r = int(row) + row_target
+            e_row = energy[r].astype(np.float64)
+            s_row = entropy[r].astype(np.float64)
+            if np.any(np.diff(e_row) <= 0.0):
+                # Keep the T(u) inversion single-valued; hot condensed WoMa states
+                # never touch the (already monotonic) table region this alters.
+                e_row = np.maximum.accumulate(e_row)
+                e_row[np.diff(e_row, prepend=e_row[0] - 1.0) <= 0.0] += 1e-30
+            logt_at_u = np.interp(u_cgs[sel], e_row, logt_axis)
+            out[sel] = np.interp(logt_at_u, logt_axis, s_row)
+    return (1.0 - w) * s0 + w * s1
+
+
+def woma_state_s0(particles: dict[str, np.ndarray], units: dict[str, float], table_path) -> np.ndarray:
+    """Per-particle anchor entropy s0 (planetg code units) of the smooth WoMa state.
+
+    Evaluates the .spheos table at each particle's WoMa (rho, u) so the
+    isentropic-relaxation reset u <- u_table(rho, s0) is the identity on the
+    WoMa profile, instead of inheriting the noisy t=0 SPH density evaluation
+    (critical for thinned secondaries). Mirrors makeplanet_sphexa.py.
+    """
+    tables = load_spheos_tables(table_path)
+    material = np.asarray(particles["materialId"])
+    energy_unit_cgs = units["specific_energy_jkg"] * 1.0e4  # erg/g per code specific energy
+    rho_cgs = np.asarray(particles["density_si"], dtype=np.float64) * 1.0e-3
+    u_cgs = np.asarray(particles["u"], dtype=np.float64) * energy_unit_cgs
+    s0 = np.empty(material.shape, dtype=np.float64)
+    for material_id in np.unique(material):
+        mid = int(material_id)
+        if mid not in tables:
+            raise ValueError(f"material {mid} absent from s0 EOS table {table_path}")
+        sel = material == material_id
+        s_cgs = spheos_entropy_cgs(tables[mid], rho_cgs[sel], u_cgs[sel])
+        s0[sel] = s_cgs / energy_unit_cgs
+    if np.any(~np.isfinite(s0)):
+        raise ValueError("s0 evaluation produced non-finite values")
+    return s0
+
 
 def planetg_units(length_cm: float, mass_g: float, velocity_cms: float) -> dict[str, float]:
     """Return the planetg code-unit system with SI conversion factors."""
@@ -681,6 +809,14 @@ def write_gizmo(
                 group.create_dataset(
                     "Temperature", data=np.asarray(particles["temperature_k"]), dtype=np.float64
                 )
+            # Anchor entropy for the isentropic relaxation pin, from the smooth WoMa
+            # (rho, u) state on the runtime's own .spheos table rather than the noisy
+            # t=0 SPH density evaluation (mirrors sphexa's s0 IC field).
+            if "anchor_entropy" in particles:
+                group.create_dataset(
+                    "AnchorEntropy", data=np.asarray(particles["anchor_entropy"]), dtype=np.float64
+                )
+                header.attrs["s0Source"] = f"woma-state:{Path(args.s0_eos_table).name}"
 
         with h5py.File(temporary, "r") as check:
             expected = {
@@ -803,6 +939,15 @@ def parse_arguments(argv: list[str] | None = None):
     parser.add_argument("--unit-length-cm", type=float, default=DEFAULT_UNIT_LENGTH_CM)
     parser.add_argument("--unit-mass-g", type=float, default=DEFAULT_UNIT_MASS_G)
     parser.add_argument("--unit-velocity-cms", type=float, default=DEFAULT_UNIT_VELOCITY_CMS)
+    parser.add_argument(
+        "--s0-eos-table",
+        type=Path,
+        default=None,
+        help="SPH-EXA .spheos table used to evaluate the per-particle anchor entropy s0 at the "
+        "smooth WoMa (rho,u) state; written as PartType0/AnchorEntropy and consumed by planetg's "
+        "RelaxIsentropic pin (default: off)",
+    )
+    parser.add_argument("--no-s0", action="store_true", help="disable anchor entropy output")
     parser.add_argument("--seed", type=int, default=12345)
     parser.add_argument("--dry-run", action="store_true", help="build only the radial profile and report counts")
     parser.add_argument("--show-units", action="store_true", help="report code units without importing WoMa")
@@ -994,6 +1139,14 @@ def main(argv: list[str] | None = None) -> int:
     for key, value in diagnostics.items():
         print(f"  {key:26s} = {value:.12g}")
 
+    if args.s0_eos_table and not args.no_s0:
+        particles["anchor_entropy"] = woma_state_s0(particles, units, args.s0_eos_table)
+        for material_id in np.unique(particles["materialId"]):
+            sel = particles["materialId"] == material_id
+            s0 = particles["anchor_entropy"][sel]
+            print(f"  s0 material {material_id}: median {np.median(s0):.6g} code "
+                  f"[{np.min(s0):.6g}..{np.max(s0):.6g}]")
+
     write_gizmo(args.output, particles, args, units, primary_metadata)
     print(f"Wrote primary with {len(particles['id']):,} particles to {args.output.resolve()}")
     del particles
@@ -1096,6 +1249,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {key:26s} = {value:.12g}")
     for key, value in mass_errors.items():
         print(f"  {key:26s} = {value:.12g}")
+
+    if args.s0_eos_table and not args.no_s0:
+        secondary_particles["anchor_entropy"] = woma_state_s0(
+            secondary_particles, units, args.s0_eos_table
+        )
+        for material_id in np.unique(secondary_particles["materialId"]):
+            sel = secondary_particles["materialId"] == material_id
+            s0 = secondary_particles["anchor_entropy"][sel]
+            print(f"  s0 material {material_id}: median {np.median(s0):.6g} code "
+                  f"[{np.min(s0):.6g}..{np.max(s0):.6g}]")
 
     write_gizmo(args.secondary_output, secondary_particles, args, units, secondary_metadata)
     print(

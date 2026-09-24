@@ -66,18 +66,32 @@ four parameters (all zero = disabled, e.g. for the impact run):
 - `RelaxIsentropic` (0/1) — fixed-entropy relaxation, a port of SPH-EXA's
   `--relax-isentropic`. While `Time < RelaxUntil`, every particle's internal
   energy is reset to `u(rho, s0)` from the EOS table before the pressure
-  evaluation, where `s0` is the particle's table entropy in the pristine IC
-  (adopted lazily on the first force evaluation, stored in
-  `SphP.RelaxEntropy0`). This holds the constructed entropy profile exactly
-  while positions/densities settle; energy conservation is intentionally
-  violated, so it must stay 0 for production/impact runs. Requires an EOS
-  table with entropy (both materials in `rock_planet_aneos_62_63.spheos` have
-  it). Unlike SPH-EXA, `s0` is not written to snapshots: a restarted
-  relaxation re-adopts `s0` from the current state, which is equivalent as
-  long as the state was pinned. Implementation: `moonrelax_isentropic_pin()`
-  in `eos/eos.c`, called in the density loop just before `get_pressure()`
-  (`hydro/density.c`); entropy inversion `eos_table_invert_energy()` is a C
-  port of SPH-EXA's `TabulatedEos::invertEnergy`.
+  evaluation (stored in `SphP.RelaxEntropy0`). The anchor entropy `s0` comes
+  from the IC's optional `PartType0/AnchorEntropy` block when present —
+  `makeplanet_planetg.py --s0-eos-table` writes it from the *smooth WoMa*
+  `(rho, u)` state on the runtime's own `.spheos` table (same algorithm as
+  SPH-EXA's `makeplanet_sphexa.py` `s0` field), so the pin is the identity
+  on the WoMa profile and does not inherit the noisy t=0 SPH density
+  evaluation (critical for thinned secondaries). ICs without the block fall
+  back to adopting `s0` from the t=0 `(rho, u)` table entropy on the first
+  force evaluation. This holds the constructed entropy profile exactly while
+  positions/densities settle; energy conservation is intentionally violated,
+  so it must stay 0 for production/impact runs. Requires an EOS table with
+  entropy (both materials in `rock_planet_aneos_62_63.spheos` have it).
+  Unlike SPH-EXA, `s0` is not written to snapshots: a restarted relaxation
+  re-reads the IC block (RestartFlag 0) or re-adopts from the current state,
+  which is equivalent as long as the state was pinned. Implementation:
+  `moonrelax_isentropic_pin()` in `eos/eos.c`, called in the density loop
+  just before `get_pressure()` (`hydro/density.c`); IC block read in
+  `read_anchor_entropy()` (`read_ic.c`); entropy inversion
+  `eos_table_invert_energy()` is a C port of SPH-EXA's
+  `TabulatedEos::invertEnergy`.
+
+- Compile-time flags: `EOS_ANEOS` is the single master switch. It
+  auto-enables `EOS_TABULATED`, `EOS_CARRIES_TEMPERATURE`,
+  `EOS_CARRIES_ENTROPY`, `MOON`, `MOONRELAX`, `READ_IMAT`, `CLIPPING` and
+  `PREVENT_PARTICLE_MERGE_SPLIT` (see `eos/eos.h`), so `noon1.conf` only
+  needs `EOS_ANEOS` plus the hydro/kernel/I/O choices.
 
 Implementation: `moonrelax_modify_kick()` in `run.c`, called from
 `do_the_kick` (`kicks.c`) after the momentum kick `dp` is computed and before

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <float.h>
 #include <string.h>
 
 
@@ -40,6 +41,87 @@ static long long *NumPartPerFile;
 
 #if defined(BLACK_HOLES) && defined(DETACH_BLACK_HOLES)
 int N_BH_idx;
+#endif
+
+#if defined(MOONRELAX) && defined(EOS_ANEOS) && defined(HAVE_HDF5)
+/*! Optional per-particle anchor entropy (dataset PartType0/AnchorEntropy), written by
+ *  makeplanet_planetg.py from the smooth WoMa (rho,u) state evaluated on the EOS table
+ *  (mirrors sphexa's s0 IC field). When present, the isentropic pin uses it directly
+ *  instead of adopting the noisy t=0 SPH density evaluation. Particles left as NaN
+ *  still take the lazy-adoption fallback in moonrelax_isentropic_pin().
+ *  Single-file ICs only: with one file, the standard read maps each task to one
+ *  contiguous hyperslab of the file, which this routine mirrors exactly. */
+static void read_anchor_entropy(char *fname)
+{
+    char buf[500];
+    sprintf(buf, "%s.hdf5", fname);
+
+    int found = 0;
+    if(ThisTask == 0)
+    {
+        hid_t file = H5Fopen(buf, H5F_ACC_RDONLY, H5P_DEFAULT);
+        if(file >= 0)
+        {
+            hid_t grp = H5Gopen(file, "/PartType0");
+            if(grp >= 0)
+            {
+                found = (H5Lexists(grp, "AnchorEntropy", H5P_DEFAULT) > 0);
+                H5Gclose(grp);
+            }
+            H5Fclose(file);
+        }
+    }
+    MPI_Bcast(&found, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if(!found)
+        return;
+
+    /* contiguous per-task chunk of the single input file (same split as the main read) */
+    long long ngas = All.TotN_gas;
+    long long base = ngas / NTask, rem = ngas % NTask;
+    long long n_local = base + (ThisTask < rem ? 1 : 0);
+    long long prefix = ThisTask * base + (ThisTask < rem ? ThisTask : rem);
+    if(n_local != N_gas)
+    {
+        if(ThisTask == 0)
+            printf("MOONRELAX: AnchorEntropy present but particle split mismatch (%lld != %d); "
+                   "ignoring it (multi-file ICs are not supported for AnchorEntropy)\n", n_local, N_gas);
+        return;
+    }
+
+    double *tmp = (double *) mymalloc("AnchorEntropyBuf", n_local * sizeof(double));
+    hid_t file = H5Fopen(buf, H5F_ACC_RDONLY, H5P_DEFAULT);
+    hid_t grp = H5Gopen(file, "/PartType0");
+    hid_t dset = H5Dopen(grp, "AnchorEntropy");
+    hsize_t dims = (hsize_t) ngas;
+    hid_t filespace = H5Screate_simple(1, &dims, NULL);
+    hsize_t start = (hsize_t) prefix, count = (hsize_t) n_local;
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, &start, NULL, &count, NULL);
+    hid_t memspace = H5Screate_simple(1, &count, NULL);
+    if(H5Dread(dset, H5T_NATIVE_DOUBLE, memspace, filespace, H5P_DEFAULT, tmp) < 0)
+        endrun(8089);
+    H5Sclose(memspace);
+    H5Sclose(filespace);
+    H5Dclose(dset);
+    H5Gclose(grp);
+    H5Fclose(file);
+
+    long i;
+    for(i = 0; i < N_gas; i++)
+        SphP[i].RelaxEntropy0 = tmp[i];
+    myfree(tmp);
+
+    double s0min = DBL_MAX, s0max = -DBL_MAX;
+    for(i = 0; i < N_gas; i++)
+    {
+        if(SphP[i].RelaxEntropy0 < s0min) s0min = SphP[i].RelaxEntropy0;
+        if(SphP[i].RelaxEntropy0 > s0max) s0max = SphP[i].RelaxEntropy0;
+    }
+    MPI_Allreduce(MPI_IN_PLACE, &s0min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &s0max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    if(ThisTask == 0)
+        printf("MOONRELAX: anchor entropy read from IC (AnchorEntropy block, WoMa-state s0): "
+               "code-units range %g .. %g\n", s0min, s0max);
+}
 #endif
 
 void read_ic(char *fname)
@@ -237,9 +319,15 @@ void read_ic(char *fname)
     {
         SphP[i].InternalEnergyPred = SphP[i].InternalEnergy = DMAX(All.MinEgySpec, SphP[i].InternalEnergy);
 #if defined(MOONRELAX) && defined(EOS_ANEOS)
-        SphP[i].RelaxEntropy0 = NAN; /* isentropic pin lazily adopts the pristine entropy on the first force evaluation; not persisted in snapshots */
+        SphP[i].RelaxEntropy0 = NAN; /* fallback: pin lazily adopts the entropy of the t=0 (rho,u) state */
 #endif
     }
+
+#if defined(MOONRELAX) && defined(EOS_ANEOS) && defined(HAVE_HDF5)
+    /* prefer the smooth WoMa-state anchor entropy if the IC carries it (overwrites the NaN fallback) */
+    if(RestartFlag == 0)
+        read_anchor_entropy(fname);
+#endif
     
     MPI_Barrier(MPI_COMM_WORLD);
     

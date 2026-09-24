@@ -18,6 +18,30 @@
 #define EOS_PROVIDES_CV
 #endif
 
+#ifdef EOS_ANEOS
+/* EOS_ANEOS is the giant-impact master switch: pull in every flag the impact
+ * pipeline needs so users only enable EOS_ANEOS in Config.sh.
+ *   EOS_TABULATED            - table-based EOS machinery
+ *   EOS_CARRIES_TEMPERATURE  - IC/snapshot Temperature block
+ *   EOS_CARRIES_ENTROPY      - snapshot Entropy block
+ *   MOON                     - giant-impact master (imat field, IO_IMAT, core/mantle handling)
+ *   MOONRELAX                - relaxation (drag, spherical fix, isentropic pin)
+ *   READ_IMAT                - read Materials from ICs
+ *   CLIPPING                 - domain/merge-split clipping used by impact runs
+ *   PREVENT_PARTICLE_MERGE_SPLIT - impact runs never split/merge particles
+ */
+#define EOS_TABULATED
+#define EOS_CARRIES_TEMPERATURE
+#define EOS_CARRIES_ENTROPY
+#ifndef MOON
+#define MOON
+#endif
+#define MOONRELAX
+#define READ_IMAT
+#define CLIPPING
+#define PREVENT_PARTICLE_MERGE_SPLIT
+#endif
+
 struct eos_input
 {
   double rho;         /* Density */

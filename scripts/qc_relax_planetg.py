@@ -68,14 +68,23 @@ def main():
         raise SystemExit(f"no snapshots in {args.run_dir}")
     print(f"=== {args.title or args.run_dir}: {len(snaps)} snapshot(s)")
 
-    fig, axes = plt.subplots(2, 3, figsize=(15, 8))
+    # subsample to <= 11 evenly spaced snapshots for a readable profile plot
+    if len(snaps) > 11:
+        sel = np.linspace(0, len(snaps) - 1, 11).round().astype(int)
+        snaps = [snaps[i] for i in sel]
+        print(f"    plotting {len(snaps)} of them (evenly spaced)")
+
+    cmap = matplotlib.colormaps["viridis"]
+    fig, axes = plt.subplots(2, 3, figsize=(16, 8.5))
     axdrift = axes[1][2]
     shell_ref = None
     edges = None
+    times = []
 
     for isnap, snap in enumerate(snaps):
         d = load(snap)
-        color = colors[isnap % len(colors)]
+        times.append(d["t"])
+        color = cmap(isnap / max(len(snaps) - 1, 1) * 0.92)
         n = len(d["r"])
         idx = rng.choice(n, min(MAXPTS, n), replace=False)
         label = f"t = {d['t']:.2f}"
@@ -122,7 +131,11 @@ def main():
     axdrift.axhline(0, color="k", lw=0.6)
     for ax in axes.flat:
         ax.set_xlabel(r"Radius [$R_\oplus$]"); ax.grid(alpha=0.3)
-    axes[0][0].legend(markerscale=20, loc="best", fontsize=9)
+    if times:
+        sm = plt.cm.ScalarMappable(
+            cmap=cmap, norm=plt.Normalize(vmin=times[0], vmax=times[-1]))
+        cb = fig.colorbar(sm, ax=axes, shrink=0.9, pad=0.02, aspect=30)
+        cb.set_label("time [code units]")
     fig.suptitle(f"planetg relaxation QC: {args.title}", fontsize=13)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(args.out, dpi=200)
