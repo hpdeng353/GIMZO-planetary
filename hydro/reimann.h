@@ -264,6 +264,37 @@ static inline double get_dQ_from_slopelimiter(double dQ_1, MyFloat grad[3], stru
 /* --------------------------------------------------------------------------------- */
 void Riemann_solver(struct Input_vec_Riemann Riemann_vec, struct Riemann_outputs *Riemann_out, double n_unit[3], double press_tot_limiter)
 {
+#ifdef EOS_GENERAL
+    /* general EOS: validate the complete input state before entering any solver.
+       rho, P, cs must be positive and finite; u and v must be finite (the energy
+       zero-point of a general EOS is arbitrary, so u>0 is NOT required here).
+       A negative P_M sentinel signals failure so the caller's fallback ladder fires. */
+    {
+        int k, bad_input = 0;
+        if(!(Riemann_vec.L.rho > 0) || !isfinite(Riemann_vec.L.rho)) bad_input = 1;
+        if(!(Riemann_vec.R.rho > 0) || !isfinite(Riemann_vec.R.rho)) bad_input = 1;
+        if(!(Riemann_vec.L.p > 0) || !isfinite(Riemann_vec.L.p)) bad_input = 1;
+        if(!(Riemann_vec.R.p > 0) || !isfinite(Riemann_vec.R.p)) bad_input = 1;
+        if(!(Riemann_vec.L.cs > 0) || !isfinite(Riemann_vec.L.cs)) bad_input = 1;
+        if(!(Riemann_vec.R.cs > 0) || !isfinite(Riemann_vec.R.cs)) bad_input = 1;
+        if(!isfinite(Riemann_vec.L.u) || !isfinite(Riemann_vec.R.u)) bad_input = 1;
+        for(k=0;k<3;k++)
+            if(!isfinite(Riemann_vec.L.v[k]) || !isfinite(Riemann_vec.R.v[k])) bad_input = 1;
+        if(bad_input)
+        {
+            printf("FAILURE: Invalid inputs to Riemann solver (general EOS): "
+                   "L rho/P/u/cs=%g/%g/%g/%g v=%g/%g/%g ; R rho/P/u/cs=%g/%g/%g/%g v=%g/%g/%g\n",
+                   Riemann_vec.L.rho, Riemann_vec.L.p, Riemann_vec.L.u, Riemann_vec.L.cs,
+                   Riemann_vec.L.v[0], Riemann_vec.L.v[1], Riemann_vec.L.v[2],
+                   Riemann_vec.R.rho, Riemann_vec.R.p, Riemann_vec.R.u, Riemann_vec.R.cs,
+                   Riemann_vec.R.v[0], Riemann_vec.R.v[1], Riemann_vec.R.v[2]);
+            fflush(stdout);
+            Riemann_out->P_M = -1;
+            Riemann_out->S_M = 0;
+            return;
+        }
+    }
+#else
     if((Riemann_vec.L.p < 0 && Riemann_vec.R.p < 0)||(Riemann_vec.L.rho < 0)||(Riemann_vec.R.rho < 0))
     {
         printf("FAILURE: Unphysical Inputs to Reimann Solver: Left P/rho=%g/%g, Right P/rho=%g/%g \n",
@@ -271,6 +302,7 @@ void Riemann_solver(struct Input_vec_Riemann Riemann_vec, struct Riemann_outputs
         Riemann_out->P_M = 0;
         return;
     }
+#endif
     
     if(All.ComovingIntegrationOn)
     {
@@ -451,6 +483,14 @@ void Riemann_solver_Rusanov(struct Input_vec_Riemann Riemann_vec, struct Riemann
     double S_L, S_R, S_plus, rho_csnd_hat, P_M, S_M;
     S_plus = DMAX(DMAX(fabs(v_line_L - cs_L), fabs(v_line_R - cs_R)), DMAX(fabs(v_line_L + cs_L), fabs(v_line_R + cs_R)));
     S_L=-S_plus; S_R=S_plus; rho_csnd_hat=0.5*(Riemann_vec.L.rho+Riemann_vec.R.rho) * 0.5*(cs_L+cs_R);
+    /* guard the division by rho*cs: a vanishing or non-finite sound-speed product
+       would otherwise silently produce NaN P_M/S_M */
+    if(!(rho_csnd_hat > 0) || !isfinite(rho_csnd_hat) || !isfinite(S_plus))
+    {
+        Riemann_out->P_M = -1; /* explicit failure: caller prints diagnostics and stops */
+        Riemann_out->S_M = 0;
+        return;
+    }
     P_M = 0.5 * ((Riemann_vec.L.p + Riemann_vec.R.p) + (v_line_L-v_line_R) * rho_csnd_hat);
     S_M = 0.5 * ((v_line_R+v_line_L) + (Riemann_vec.L.p-Riemann_vec.R.p) / (rho_csnd_hat));
     Riemann_out->P_M = P_M;
@@ -503,9 +543,16 @@ void get_wavespeeds_and_pressure_star(struct Input_vec_Riemann Riemann_vec, stru
         S_R = DMAX(v_line_L,v_line_R) + DMAX(cs_L,cs_R);
         double rho_wt_L = Riemann_vec.L.rho*(S_L-v_line_L);
         double rho_wt_R = Riemann_vec.R.rho*(S_R-v_line_R);
-        Riemann_out->S_M = ((PT_R-PT_L) + rho_wt_L*v_line_L - rho_wt_R*v_line_R) / (rho_wt_L - rho_wt_R);
-        Riemann_out->P_M = (PT_L*rho_wt_R - PT_R*rho_wt_L + rho_wt_L*rho_wt_R*(v_line_R - v_line_L)) / (rho_wt_R - rho_wt_L);
-        if(Riemann_out->P_M <= MIN_REAL_NUMBER) {Riemann_out->P_M = MIN_REAL_NUMBER; Riemann_out->S_M = S_L = S_R = 0;}
+        double denom_gaburov = rho_wt_L - rho_wt_R;
+        if(!isfinite(denom_gaburov) || fabs(denom_gaburov) < MIN_REAL_NUMBER)
+        {
+            Riemann_out->P_M = -1; /* explicit failure: do not mask with a tiny positive pressure */
+        }
+        else
+        {
+            Riemann_out->S_M = ((PT_R-PT_L) + rho_wt_L*v_line_L - rho_wt_R*v_line_R) / denom_gaburov;
+            Riemann_out->P_M = (PT_L*rho_wt_R - PT_R*rho_wt_L + rho_wt_L*rho_wt_R*(v_line_R - v_line_L)) / (rho_wt_R - rho_wt_L);
+        }
         
         if((Riemann_out->P_M <= 0)||(isnan(Riemann_out->P_M))||(Riemann_out->P_M>press_tot_limiter))
         {
@@ -530,12 +577,30 @@ void get_wavespeeds_and_pressure_star(struct Input_vec_Riemann Riemann_vec, stru
             rho_wt_R =  Riemann_vec.R.rho * (S_R - v_line_R);
             rho_wt_L = -Riemann_vec.L.rho * (S_L - v_line_L); /* note the sign */
             /* contact wave speed (speed at contact surface): */
-            Riemann_out->S_M = ((rho_wt_R*v_line_R + rho_wt_L*v_line_L) + (PT_L - PT_R)) / (rho_wt_R + rho_wt_L);
-            /* S_M = v_line_L* = v_line_R* = v_line_M --- this is the speed at interface */
-            /* contact pressure (pressure at contact surface): */
-            Riemann_out->P_M = Riemann_vec.L.rho * (v_line_L-S_L)*(v_line_L-Riemann_out->S_M) + PT_L;
-            if(Riemann_out->P_M <= MIN_REAL_NUMBER) {Riemann_out->P_M = MIN_REAL_NUMBER; Riemann_out->S_M = S_L = S_R = 0;}
-            /* p_M = p_L* = p_R*  */
+            double denom_roe = rho_wt_R + rho_wt_L;
+            if(!isfinite(denom_roe) || fabs(denom_roe) < MIN_REAL_NUMBER)
+            {
+                Riemann_out->P_M = -1;
+            }
+            else
+            {
+                Riemann_out->S_M = ((rho_wt_R*v_line_R + rho_wt_L*v_line_L) + (PT_L - PT_R)) / denom_roe;
+                /* S_M = v_line_L* = v_line_R* = v_line_M --- this is the speed at interface */
+                /* contact pressure (pressure at contact surface): */
+                Riemann_out->P_M = Riemann_vec.L.rho * (v_line_L-S_L)*(v_line_L-Riemann_out->S_M) + PT_L;
+                /* p_M = p_L* = p_R*  */
+            }
+            /* star-region sanity for a general EOS: wave speeds finite and ordered,
+               starred densities positive and finite; otherwise treat as failure so the
+               next estimator in the chain runs */
+            {
+                double rho_star_L = Riemann_vec.L.rho*(S_L-v_line_L)/(S_L-Riemann_out->S_M);
+                double rho_star_R = Riemann_vec.R.rho*(S_R-v_line_R)/(S_R-Riemann_out->S_M);
+                if(!isfinite(S_L) || !isfinite(S_R) || !isfinite(Riemann_out->S_M) ||
+                   !(S_L < Riemann_out->S_M && Riemann_out->S_M < S_R) ||
+                   !isfinite(rho_star_L) || !isfinite(rho_star_R) || rho_star_L <= 0 || rho_star_R <= 0)
+                    Riemann_out->P_M = -1;
+            }
             
             if((Riemann_out->P_M <= 0)||(isnan(Riemann_out->P_M))||(Riemann_out->P_M>press_tot_limiter))
             {
@@ -545,7 +610,8 @@ void get_wavespeeds_and_pressure_star(struct Input_vec_Riemann Riemann_vec, stru
                 Riemann_out->S_M = 0.5*(v_line_R+v_line_L) + 2.0*(PT_L-PT_R)/((Riemann_vec.L.rho+Riemann_vec.R.rho)*(cs_L+cs_R));
                 double S_plus = DMAX(DMAX(fabs(v_line_L - cs_L), fabs(v_line_R - cs_R)), DMAX(fabs(v_line_L + cs_L), fabs(v_line_R + cs_R)));
                 S_L=-S_plus; S_R=S_plus; if(Riemann_out->S_M<S_L) Riemann_out->S_M=S_L; if(Riemann_out->S_M>S_R) Riemann_out->S_M=S_R;
-                if(Riemann_out->P_M <= MIN_REAL_NUMBER) {Riemann_out->P_M = MIN_REAL_NUMBER; Riemann_out->S_M = S_L = S_R = 0;}
+                /* no masking here: a non-positive or non-finite P_M is an explicit failure,
+                   the caller's fallback (Rusanov, then diagnostics+stop) decides what to do */
             }
         }
     }

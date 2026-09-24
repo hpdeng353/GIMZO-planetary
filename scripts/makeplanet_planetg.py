@@ -85,17 +85,27 @@ def load_spheos_tables(path) -> dict[int, dict[str, np.ndarray]]:
     offset = 4
     tables: dict[int, dict[str, np.ndarray]] = {}
     for _ in range(count):
-        material_id, nrho, ntemp, _flags = struct.unpack_from("<IIII", payload, offset)
+        material_id, nrho, ntemp, flags = struct.unpack_from("<IIII", payload, offset)
         offset += 16
         log_rho = np.frombuffer(payload, "<f8", nrho, offset).copy()
         offset += nrho * 8
-        energy = np.frombuffer(payload, "<f8", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
+        if flags & 0x2:  # FLAG_ROW_DEPENDENT_U: full 2D energy grid
+            energy = np.frombuffer(payload, "<f8", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
+            offset += nrho * ntemp * 8
+        else:
+            # shared energy axis (uStride=0 in the C reader): broadcast to the full 2D grid
+            axis = np.frombuffer(payload, "<f8", ntemp, offset).copy()
+            offset += ntemp * 8
+            energy = np.broadcast_to(axis, (nrho, ntemp)).copy()
         offset += nrho * ntemp * 4  # log pressure (f4), unused here
         offset += nrho * ntemp * 4  # log sound speed (f4), unused here
         log_temp = np.frombuffer(payload, "<f4", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
         offset += nrho * ntemp * 4
-        entropy = np.frombuffer(payload, "<f4", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
-        offset += nrho * ntemp * 4
+        if flags & 0x8:  # FLAG_HAS_ENTROPY
+            entropy = np.frombuffer(payload, "<f4", nrho * ntemp, offset).reshape(nrho, ntemp).copy()
+            offset += nrho * ntemp * 4
+        else:
+            entropy = None
         tables[int(material_id)] = {
             "log_rho": log_rho,
             "energy": energy,
@@ -167,6 +177,8 @@ def woma_state_s0(particles: dict[str, np.ndarray], units: dict[str, float], tab
         mid = int(material_id)
         if mid not in tables:
             raise ValueError(f"material {mid} absent from s0 EOS table {table_path}")
+        if tables[mid]["entropy"] is None:
+            raise ValueError(f"material {mid} in {table_path} has no entropy columns (FLAG_HAS_ENTROPY unset)")
         sel = material == material_id
         s_cgs = spheos_entropy_cgs(tables[mid], rho_cgs[sel], u_cgs[sel])
         s0[sel] = s_cgs / energy_unit_cgs

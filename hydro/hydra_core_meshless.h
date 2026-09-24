@@ -193,6 +193,42 @@
         reconstruct_face_states(kernel.sound_i, local.Gradients.SoundSpeed, kernel.sound_j, SphP[j].Gradients.SoundSpeed,
                                 distance_from_i, distance_from_j, &Riemann_vec.L.cs, &Riemann_vec.R.cs, recon_mode);
 #endif // hpdeng note we are not reconstructing eosgamm and eospsi will this cause a problem?
+#if defined(EOS_GENERAL) && defined(EOS_ANEOS)
+        /* Thermodynamic consistency at the interface (general EOS): rho, u and v are the
+           only independent reconstructed quantities; re-derive P and cs from the EOS at the
+           reconstructed (rho,u), with each side's own material ID. A reconstructed state
+           that lands outside the table or is non-finite reverts to the particle-centered
+           (first-order) state, which is EOS-consistent by construction. Note Q_L=j, Q_R=i. */
+        {
+            EosTableState st_face;
+            st_face = eos_table_evaluate_code(EosTableSpx, Riemann_vec.L.rho, Riemann_vec.L.u,
+                                              (uint32_t)EosTableSpxMatId[SphP[j].imat], 0, EosTableSpxUnits);
+            if(st_face.status == EOS_TABLE_SUCCESS && st_face.pressure > 0 && st_face.soundSpeed > 0 &&
+               isfinite(st_face.pressure) && isfinite(st_face.soundSpeed))
+            {
+                Riemann_vec.L.p = st_face.pressure;
+                Riemann_vec.L.cs = st_face.soundSpeed;
+            }
+            else
+            {
+                Riemann_vec.L.rho = SphP[j].Density; Riemann_vec.L.u = SphP[j].InternalEnergyPred;
+                Riemann_vec.L.p = SphP[j].Pressure; Riemann_vec.L.cs = kernel.sound_j;
+            }
+            st_face = eos_table_evaluate_code(EosTableSpx, Riemann_vec.R.rho, Riemann_vec.R.u,
+                                              (uint32_t)EosTableSpxMatId[local.imat], 0, EosTableSpxUnits);
+            if(st_face.status == EOS_TABLE_SUCCESS && st_face.pressure > 0 && st_face.soundSpeed > 0 &&
+               isfinite(st_face.pressure) && isfinite(st_face.soundSpeed))
+            {
+                Riemann_vec.R.p = st_face.pressure;
+                Riemann_vec.R.cs = st_face.soundSpeed;
+            }
+            else
+            {
+                Riemann_vec.R.rho = local.Density; Riemann_vec.R.u = local.InternalEnergyPred;
+                Riemann_vec.R.p = local.Pressure; Riemann_vec.R.cs = kernel.sound_i;
+            }
+        }
+#endif
         for(k=0;k<3;k++)
         {
             reconstruct_face_states(local.Vel[k]-v_frame[k], local.Gradients.Velocity[k], VelPred_j[k]-v_frame[k], SphP[j].Gradients.Velocity[k],
@@ -322,43 +358,29 @@
 
             if((Riemann_out.P_M<0)||(isnan(Riemann_out.P_M)))
             {
-                /* ignore any velocity difference between the particles: this should gaurantee we have a positive pressure! */
-                Riemann_vec.R.p = local.Pressure; Riemann_vec.L.p = SphP[j].Pressure;
-                Riemann_vec.R.rho = local.Density; Riemann_vec.L.rho = SphP[j].Density;
-                for(k=0;k<3;k++) {Riemann_vec.R.v[k]=0; Riemann_vec.L.v[k]=0;}
-#ifdef MAGNETIC
-                for(k=0;k<3;k++) {Riemann_vec.R.B[k]=local.BPred[k]; Riemann_vec.L.B[k]=BPred_j[k];}
-#ifdef DIVBCLEANING_DEDNER
-                Riemann_vec.R.phi = local.PhiPred; Riemann_vec.L.phi = PhiPred_j;
-#endif
-#endif
+                /* Both the second-order and the particle-centered solve failed. Under
+                   EOS_GENERAL each attempt already fell back to Rusanov internally, so the
+                   whole fallback ladder is exhausted. The old "zero out the velocities and
+                   retry" step is removed: it manufactured positive pressures by erasing the
+                   physical relative kinetic energy, producing severe local energy errors.
+                   Instead print the complete face state and stop, rather than propagate NaN. */
 #ifdef EOS_GENERAL
-                Riemann_vec.R.u = local.InternalEnergyPred; Riemann_vec.L.u = SphP[j].InternalEnergyPred;
-                Riemann_vec.R.cs = kernel.sound_i; Riemann_vec.L.cs = kernel.sound_j;
-#endif
-
-                Riemann_solver(Riemann_vec, &Riemann_out, n_unit, 2.0*press_tot_limiter);
-
-
-                if((Riemann_out.P_M<0)||(isnan(Riemann_out.P_M)))
-                {
-#if defined(MAGNETIC) && defined(DIVBCLEANING_DEDNER)
-                    printf("Riemann Solver Failed to Find Positive Pressure!: Pmax=%g PL/M/R=%g/%g/%g Mi/j=%g/%g rhoL/R=%g/%g H_ij=%g/%g vL=%g/%g/%g vR=%g/%g/%g n_unit=%g/%g/%g BL=%g/%g/%g BR=%g/%g/%g phiL/R=%g/%g \n",
-                           press_tot_limiter,Riemann_vec.L.p,Riemann_out.P_M,Riemann_vec.R.p,local.Mass,P[j].Mass,Riemann_vec.L.rho,Riemann_vec.R.rho,local.Hsml,PPP[j].Hsml,
-                           local.Vel[0]-v_frame[0],local.Vel[1]-v_frame[1],local.Vel[2]-v_frame[2],
-                           VelPred_j[0]-v_frame[0],VelPred_j[1]-v_frame[1],VelPred_j[2]-v_frame[2],
-                           n_unit[0],n_unit[1],n_unit[2],
-                           Riemann_vec.L.B[0],Riemann_vec.L.B[1],Riemann_vec.L.B[2],
-                           Riemann_vec.R.B[0],Riemann_vec.R.B[1],Riemann_vec.R.B[2],
-                           Riemann_vec.L.phi,Riemann_vec.R.phi);
+                printf("Riemann Solver Failed (HLLC + Rusanov exhausted): task=%d i=%d j=%d Pmax=%g PL/R=%g/%g "
+                       "rhoL/R=%g/%g uL/R=%g/%g csL/R=%g/%g vL=%g/%g/%g vR=%g/%g/%g H_ij=%g/%g P_M=%g\n",
+                       ThisTask, target, j, press_tot_limiter, Riemann_vec.L.p, Riemann_vec.R.p,
+                       Riemann_vec.L.rho, Riemann_vec.R.rho, Riemann_vec.L.u, Riemann_vec.R.u,
+                       Riemann_vec.L.cs, Riemann_vec.R.cs,
+                       Riemann_vec.L.v[0], Riemann_vec.L.v[1], Riemann_vec.L.v[2],
+                       Riemann_vec.R.v[0], Riemann_vec.R.v[1], Riemann_vec.R.v[2],
+                       local.Hsml, PPP[j].Hsml, Riemann_out.P_M);
 #else
-                    printf("Riemann Solver Failed to Find Positive Pressure!: Pmax=%g PL/M/R=%g/%g/%g Mi/j=%g/%g rhoL/R=%g/%g vL=%g/%g/%g vR=%g/%g/%g n_unit=%g/%g/%g \n",
-                           press_tot_limiter,Riemann_vec.L.p,Riemann_out.P_M,Riemann_vec.R.p,local.Mass,P[j].Mass,Riemann_vec.L.rho,Riemann_vec.R.rho,
-                           Riemann_vec.L.v[0],Riemann_vec.L.v[1],Riemann_vec.L.v[2],
-                           Riemann_vec.R.v[0],Riemann_vec.R.v[1],Riemann_vec.R.v[2],n_unit[0],n_unit[1],n_unit[2]);
+                printf("Riemann Solver Failed to Find Positive Pressure!: Pmax=%g PL/M/R=%g/%g/%g Mi/j=%g/%g rhoL/R=%g/%g vL=%g/%g/%g vR=%g/%g/%g n_unit=%g/%g/%g \n",
+                       press_tot_limiter,Riemann_vec.L.p,Riemann_out.P_M,Riemann_vec.R.p,local.Mass,P[j].Mass,Riemann_vec.L.rho,Riemann_vec.R.rho,
+                       Riemann_vec.L.v[0],Riemann_vec.L.v[1],Riemann_vec.L.v[2],
+                       Riemann_vec.R.v[0],Riemann_vec.R.v[1],Riemann_vec.R.v[2],n_unit[0],n_unit[1],n_unit[2]);
 #endif
-                    exit(1234); 
-                }
+                fflush(stdout);
+                exit(1234);
             }
         } // closes loop of alternative reconstructions if invalid pressures are found //
 

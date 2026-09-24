@@ -344,6 +344,9 @@ static inline void particle2in_hydra(struct hydrodata_in *in, int i)
     in->SoundSpeed = Particle_effective_soundspeed_i(i);
     in->Timestep = (P[i].TimeBin ? (1 << P[i].TimeBin) : 0);
     in->ConditionNumber = SphP[i].ConditionNumber;
+#ifdef MOON
+    in->imat = SphP[i].imat; /* material index, needed for EOS-consistent face states */
+#endif
 #ifdef CONSTRAINED_GRADIENT_MHD
     /* since it is not used elsewhere, we can use the sign of the condition number as a bit 
         to conveniently indicate the status of the parent particle flag, for the constrained gradients */
