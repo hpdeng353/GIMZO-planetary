@@ -18,7 +18,18 @@ are Python scripts in `scripts/`; compile and run on the cluster (H100:
 The runtime table (103 MB) exceeds git hosting limits and is therefore not
 tracked. Regenerate it deterministically from the EOSlib M-ANEOS tables
 (`MANEOStable_*.in`, the binary tables distributed with M-ANEOS / EOSlib —
-they are not part of this repository either):
+they are not part of this repository either). EOSlib is public on GitHub:
+https://github.com/Halbarath/EOSlib.git
+
+When using these EOS tables, please cite:
+
+- Deng et al. 2019, "Enhanced mixing ..." (the M-ANEOS forsterite/iron
+  tables as used for giant-impact modeling)
+- Thomas Meier, & Christian Reinhardt. (2021). Halbarath/EOSlib: fixed the
+  licensing (Version v.1.0.1) [Computer software]. Zenodo.
+  https://doi.org/10.5281/zenodo.4704950
+
+Build the runtime table with:
 
 ```bash
 python scripts/make_eos_table.py \

@@ -33,7 +33,11 @@ checksums in `docs/impact_pipeline.md` section 0.
 
 All upstream GIZMO copyright notices and attribution apply; cite Hopkins 2015
 (arXiv:1409.7395) and Springel (2005) as below, plus this fork's impact
-pipeline where used.
+pipeline where used. The EOS tables are built from the public EOSlib
+M-ANEOS tables (https://github.com/Halbarath/EOSlib.git); when using them,
+cite Deng et al. 2019 ("Enhanced mixing ...") and Thomas Meier, & Christian
+Reinhardt. (2021). Halbarath/EOSlib: fixed the licensing (Version v.1.0.1)
+[Computer software]. Zenodo. https://doi.org/10.5281/zenodo.4704950
 
 ---
 
