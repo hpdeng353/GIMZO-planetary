@@ -18,12 +18,12 @@ from upstream GIZMO; this fork adds and maintains the impact-physics layer:
   WoMa-profile initial models, isentropic relaxation with the entropy anchor
   read from the IC (`AnchorEntropy` block), and the impact setup used for the
   0.91+0.11 Earth-mass study. The giant-impact master switch is `EOS_ANEOS`
-  in `moon.conf`.
+  in `impact.conf`.
 
 Documentation:
 - `docs/impact_pipeline.md` — end-to-end recipe: EOS table generation, planet
   building, relaxation, impact setup, QC scripts.
-- `moon.conf` — annotated production configuration.
+- `impact.conf` — annotated production configuration.
 
 Build (H100 cluster): `bash build_h100.sh` (SYSTYPE=h100; needs MPI, HDF5,
 GSL, FFTW as described below). Binary EOS tables (`*.spheos`) are not
@@ -35,7 +35,7 @@ All upstream GIZMO copyright notices and attribution apply; cite Hopkins 2015
 (arXiv:1409.7395) and Springel (2005) as below, plus this fork's impact
 pipeline where used. The EOS tables are built from the public EOSlib
 M-ANEOS tables (https://github.com/Halbarath/EOSlib.git); when using them,
-cite Deng et al. 2019 ("Enhanced mixing ...") and Thomas Meier, & Christian
+cite Deng et al. 2019 and Thomas Meier, & Christian
 Reinhardt. (2021). Halbarath/EOSlib: fixed the licensing (Version v.1.0.1)
 [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.4704950
 

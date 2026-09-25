@@ -23,8 +23,7 @@ https://github.com/Halbarath/EOSlib.git
 
 When using these EOS tables, please cite:
 
-- Deng et al. 2019, "Enhanced mixing ..." (the M-ANEOS forsterite/iron
-  tables as used for giant-impact modeling)
+- Deng et al. 2019
 - Thomas Meier, & Christian Reinhardt. (2021). Halbarath/EOSlib: fixed the
   licensing (Version v.1.0.1) [Computer software]. Zenodo.
   https://doi.org/10.5281/zenodo.4704950
@@ -65,7 +64,7 @@ for how it is built and run on the cluster).
     entropy is also rejected because the impact build writes entropy and may
     use it for fixed-entropy relaxation.
 - Compile flag: `EOS_ANEOS`. It is the giant-impact master switch and enables
-  temperature, entropy, material input, clipping, and `MOONRELAX`; `READ_HSML`
+  temperature, entropy, material input, clipping, and `ORELAX`; `READ_HSML`
   stays **off**.
 - Riemann face states use slope-limited reconstructed density, pressure,
   internal energy and sound speed by default. Invalid/non-finite reconstructed
@@ -108,7 +107,7 @@ Output datasets (PartType0): `Coordinates`, `Velocities` (zero), `Masses`,
 Note: very small planets (~0.01 M_earth) can fail WoMa convergence; that is a
 WoMa limitation, not a bug in the writer.
 
-## 2. Relax each planet — MOONRELAX
+## 2. Relax each planet — ORELAX
 
 Run planetg on the single-planet IC with the staged relaxation enabled via
 four parameters (all zero = disabled, e.g. for the impact run):
@@ -141,7 +140,7 @@ four parameters (all zero = disabled, e.g. for the impact run):
   Unlike SPH-EXA, `s0` is not written to snapshots: a restarted relaxation
   re-reads the IC block (RestartFlag 0) or re-adopts from the current state,
   which is equivalent as long as the state was pinned. Implementation:
-  `moonrelax_isentropic_pin()` in `eos/eos.c`, called in the density loop
+  `orelax_isentropic_pin()` in `eos/eos.c`, called in the density loop
   just before `get_pressure()` (`hydro/density.c`); IC block read in
   `read_anchor_entropy()` (`read_ic.c`); entropy inversion
   `eos_table_invert_energy()` is a C port of SPH-EXA's
@@ -149,11 +148,11 @@ four parameters (all zero = disabled, e.g. for the impact run):
 
 - Compile-time flags: `EOS_ANEOS` is the single master switch. It
   auto-enables `EOS_TABULATED`, `EOS_CARRIES_TEMPERATURE`,
-  `EOS_CARRIES_ENTROPY`, `MOON`, `MOONRELAX`, `READ_IMAT`, `CLIPPING` and
-  `PREVENT_PARTICLE_MERGE_SPLIT` (see `eos/eos.h`), so `moon.conf` only
+  `EOS_CARRIES_ENTROPY`, `MOON`, `ORELAX`, `READ_IMAT`, `CLIPPING` and
+  `PREVENT_PARTICLE_MERGE_SPLIT` (see `eos/eos.h`), so `impact.conf` only
   needs `EOS_ANEOS` plus the hydro/kernel/I/O choices.
 
-Implementation: `moonrelax_modify_kick()` in `run.c`, called from
+Implementation: `orelax_modify_kick()` in `run.c`, called from
 `do_the_kick` (`kicks.c`) after the momentum kick `dp` is computed and before
 `Vel` is updated, scaled by each particle's own kick interval. Single,
 non-rotating, origin-centred planets only — never enable the spherical stage
@@ -183,13 +182,13 @@ particle extent (`--box-padding`). Particle IDs are renumbered to stay unique;
 With `--params-template`, a patched parameter file is written
 (`--params-output`, default `<output>.params`): `InitCondFile`, `OutputDir`,
 `TimeMax`, unit system and `G` in code units are filled in, and the four
-MOONRELAX parameters are forced to 0.
+ORELAX parameters are forced to 0.
 
 ## 4. Run the impact
 
 Run planetg on the impact IC with the patched params. Confirm the startup log
 shows the `EOS_ANEOS: loaded .spheos table ...` summary with the expected
-material bounds, and that no MOONRELAX damping line appears (all four
+material bounds, and that no ORELAX damping line appears (all four
 parameters are 0).
 
 ## 5. Notes and gotchas

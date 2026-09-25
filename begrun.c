@@ -73,7 +73,7 @@ void begrun(void)
 
   read_parameter_file(ParameterFile);	/* ... read in parameters for this run */
 
-#ifdef MOONRELAX
+#ifdef ORELAX
   /* relaxation parameter sanity checks (same rules as SPH-EXA's relaxation);
      evaluated on every task so all ranks abort together on bad input */
   {
@@ -100,11 +100,11 @@ void begrun(void)
       {
         if(ThisTask == 0)
           {
-            printf("MOONRELAX: invalid relaxation parameters: RelaxTimescale=%g RelaxUntil=%g "
+            printf("ORELAX: invalid relaxation parameters: RelaxTimescale=%g RelaxUntil=%g "
                    "SphericalRelaxUntil=%g SphericalRelaxReleaseDuration=%g RelaxIsentropic=%d (error %d)\n",
                    All.RelaxTimescale, All.RelaxUntil, All.SphericalRelaxUntil,
                    All.SphericalRelaxReleaseDuration, All.RelaxIsentropic, relax_error);
-            printf("MOONRELAX: rules: all values finite and >= 0; RelaxUntil or a spherical stage "
+            printf("ORELAX: rules: all values finite and >= 0; RelaxUntil or a spherical stage "
                    "require RelaxTimescale > 0; release duration > 0 requires SphericalRelaxUntil > 0; "
                    "the release window must end no later than RelaxUntil; RelaxIsentropic is 0 or 1.\n");
           }
@@ -113,7 +113,7 @@ void begrun(void)
 
     if(ThisTask == 0 && All.RelaxTimescale > 0.0)
       {
-        printf("\nMOONRELAX: drag timescale=%g, damping until t=%g", All.RelaxTimescale, All.RelaxUntil);
+        printf("\nORELAX: drag timescale=%g, damping until t=%g", All.RelaxTimescale, All.RelaxUntil);
         if(All.SphericalRelaxUntil > 0.0)
           printf(", spherical stage until t=%g, release duration %g",
                  All.SphericalRelaxUntil, All.SphericalRelaxReleaseDuration);
@@ -219,7 +219,7 @@ void begrun(void)
       All.MinGasHsmlFractional = all.MinGasHsmlFractional;
       All.MinGasTemp = all.MinGasTemp;
 
-#ifdef MOONRELAX
+#ifdef ORELAX
       /* relaxation stage control is taken from the parameter file, not the
          restart file, so a relaxed snapshot can be restarted for production */
       All.RelaxTimescale = all.RelaxTimescale;
@@ -1089,7 +1089,7 @@ void read_parameter_file(char *fname)
       addr[nt] = &All.MinGasTemp;
       id[nt++] = REAL;
 
-#ifdef MOONRELAX
+#ifdef ORELAX
       strcpy(tag[nt], "RelaxTimescale");
       addr[nt] = &All.RelaxTimescale;
       id[nt++] = REAL;
@@ -1796,7 +1796,7 @@ void init_mat_table(void)
     }
 
 #ifdef EOS_CARRIES_ENTROPY
-  /* EOS_ANEOS stores entropy in every snapshot and MOONRELAX may invert it.
+  /* EOS_ANEOS stores entropy in every snapshot and ORELAX may invert it.
      Reject an incompatible v1/v2 table at startup instead of silently
      writing zero entropy or failing after the simulation has started. */
   {

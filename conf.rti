@@ -3,7 +3,7 @@
 # rock (mat 62) below / iron (mat 63) above, hydrostatic on the tabulated
 # ANEOS EOS, constant vertical gravity, periodic in x/z, reflecting walls in y.
 # Box: Lx=0.05, Ly=0.1 (=LONG_Y*BoxSize) in R_earth units; thin z slab.
-# Same hydro method, kernel and EOS machinery as production (moon.conf).
+# Same hydro method, kernel and EOS machinery as production (impact.conf).
 
 PERIODIC                        # periodic in x and z; y is reflecting (below)
 REFLECT_BND_Y                   # y walls replace the paper's fixed boundary layers
@@ -15,8 +15,8 @@ LONG_Z=0.0703125                # box z extent = 0.00351562 = sphexa slab box
                                 # (z +/- 0.00175781); without it the cubic default
                                 # leaves vacuum around the slab -> z blow-up
 HYDRO_MESHLESS_FINITE_MASS      # Lagrangian (constant-mass) finite-volume Godunov method
-KERNEL_FUNCTION=6               # Wendland C2, same as moon.conf production
+KERNEL_FUNCTION=6               # Wendland C2, same as impact.conf production
 HAVE_HDF5                       # HDF5 I/O
 EOS_ANEOS                       # giant-impact master switch: auto-enables EOS_TABULATED,
-                                # EOS_CARRIES_TEMPERATURE/ENTROPY, MOON, MOONRELAX, READ_IMAT,
+                                # EOS_CARRIES_TEMPERATURE/ENTROPY, MOON, ORELAX, READ_IMAT,
                                 # CLIPPING and PREVENT_PARTICLE_MERGE_SPLIT (see eos/eos.h)

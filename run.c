@@ -73,7 +73,7 @@ void run(void)
         }
 
 
-/* MOONRELAX relaxation now acts inside do_the_kick (moonrelax_modify_kick),
+/* ORELAX relaxation now acts inside do_the_kick (orelax_modify_kick),
    scaled by each particle's own active timestep -- no per-loop call here. */
 
         find_timesteps();		/* find-timesteps */
@@ -1180,7 +1180,7 @@ void check_particles_info(const char *func, const char *file, int linenr)
 }
 
 
-#ifdef MOONRELAX
+#ifdef ORELAX
 /* Artificial relaxation for settling WoMa planet realizations, ported from
    SPH-EXA's relaxation scheme (sphexa docs/relaxation.md) and adapted to the
    KDK kick. Called from do_the_kick for active gas particles only.
@@ -1202,7 +1202,7 @@ void check_particles_info(const char *func, const char *file, int linenr)
 
    dp is the momentum kick mass*acceleration*dt about to be applied; dt is the
    particle's own (hydro) kick interval. */
-void moonrelax_modify_kick(int i, double dp[3], double mass, double dt)
+void orelax_modify_kick(int i, double dp[3], double mass, double dt)
 {
   int j;
   double w = 1.0; /* tangential acceleration weight: 1 = full 3D dynamics */
@@ -1246,7 +1246,7 @@ void moonrelax_modify_kick(int i, double dp[3], double mass, double dt)
       dp[j] -= mass * P[i].Vel[j] / All.RelaxTimescale * dt;
 }
 
-#endif // MOONRELAX
+#endif // ORELAX
 
 
 

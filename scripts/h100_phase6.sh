@@ -5,9 +5,9 @@
 #   eostest    compile aneos/test_eos_table.c, run it on the .spheos table, and
 #              diff the sample-point output against the Python reference
 #              (scripts/test_eos_table.py). Any mismatch = reader bug.
-#   build      full planetg build via build_h100.sh (moon.conf, SYSTYPE=h100)
+#   build      full planetg build via build_h100.sh (impact.conf, SYSTYPE=h100)
 #   makeplanet submit a SLURM CPU job building the 0.91+0.11 pair, primary 5e6
-#   relax      submit one MOONRELAX relaxation SLURM job per built planet
+#   relax      submit one ORELAX relaxation SLURM job per built planet
 #   all        eostest + build, then makeplanet (relax is submitted by the
 #              makeplanet job automatically via --dependency chains)
 #
@@ -49,7 +49,7 @@ stage_eostest() {
 }
 
 stage_build() {
-    echo "=== [build] full planetg build (moon.conf, SYSTYPE=h100, all cores)"
+    echo "=== [build] full planetg build (impact.conf, SYSTYPE=h100, all cores)"
     py_env   # gsl-config lives in the conda env (GSL_ROOT resolves from it)
     bash build_h100.sh 2>&1 | tee "$WORK/build.log"
     echo "=== [build] PASS: $(ls -la GIZMO)"

@@ -609,12 +609,12 @@ void *GasGrad_evaluate_secondary(void *p, int gradient_iteration);
 void apply_excision();
 #endif
 
-#ifdef MOONRELAX
-void moonrelax_modify_kick(int i, double dp[3], double mass, double dt);
+#ifdef ORELAX
+void orelax_modify_kick(int i, double dp[3], double mass, double dt);
 #if defined(EOS_ANEOS)
-void moonrelax_isentropic_pin(int i);
+void orelax_isentropic_pin(int i);
 #endif
-#endif // MOONRELAX
+#endif // ORELAX
 #ifdef SET_alpha
 void alphavis(void);
 #endif

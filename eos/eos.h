@@ -25,7 +25,7 @@
  *   EOS_CARRIES_TEMPERATURE  - IC/snapshot Temperature block
  *   EOS_CARRIES_ENTROPY      - snapshot Entropy block
  *   MOON                     - giant-impact master (imat field, IO_IMAT, core/mantle handling)
- *   MOONRELAX                - relaxation (drag, spherical fix, isentropic pin)
+ *   ORELAX                - relaxation (drag, spherical fix, isentropic pin)
  *   READ_IMAT                - read Materials from ICs
  *   CLIPPING                 - domain/merge-split clipping used by impact runs
  *   PREVENT_PARTICLE_MERGE_SPLIT - impact runs never split/merge particles
@@ -36,7 +36,7 @@
 #ifndef MOON
 #define MOON
 #endif
-#define MOONRELAX
+#define ORELAX
 #define READ_IMAT
 #define CLIPPING
 #define PREVENT_PARTICLE_MERGE_SPLIT

@@ -5,7 +5,7 @@ echo $moon
 #mv /scratch/snx3000/hpdeng/gizmout/$moon/snapshot* /scratch/snx3000/hpdeng/gizmobak/$moon
 #rm /scratch/snx3000/hpdeng/gizmout/$moon/moon*
 #cp /users/hpdeng/gizmo/scripts/mhd-ics.hdf5 /scratch/snx3000/hpdeng/gizmout/$moon/init/$moon-ics.hdf5
-cp ../$moon.conf ../Config.sh
+cp ../$impact.conf ../Config.sh
 cd ../
 make clean
 make

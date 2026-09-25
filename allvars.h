@@ -1053,7 +1053,7 @@ extern struct global_data_all_processes
   double InitGasU;		/*!< the same, but converted to thermal energy per unit mass */
   double MinGasTemp;		/*!< may be used to set a floor for the gas temperature */
   double MinEgySpec;		/*!< the minimum allowed temperature expressed as energy per unit mass */
-#ifdef MOONRELAX
+#ifdef ORELAX
   double RelaxTimescale;                /*!< linear drag timescale tau in dv/dt = -v/tau; 0 disables relaxation */
   double RelaxUntil;                    /*!< drag is applied while Time < RelaxUntil */
   double SphericalRelaxUntil;           /*!< radial-constraint (spherical) stage ends at this time; 0 disables it */
@@ -1659,7 +1659,7 @@ extern struct sph_particle_data
 #if defined(MOON) || defined(READ_IMAT)
     int imat;
 #endif
-#if defined(MOONRELAX) && defined(EOS_ANEOS)
+#if defined(ORELAX) && defined(EOS_ANEOS)
     MyFloat RelaxEntropy0;     /*!< reference specific entropy for isentropic relaxation (NaN = uninitialized); lazily adopted from the pristine state on the first force evaluation; not persisted in snapshots */
 #endif
 #ifdef EOS_CARRIES_TEMPERATURE

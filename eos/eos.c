@@ -158,7 +158,7 @@ else
     return press;
 }
 
-#if defined(MOONRELAX) && defined(EOS_ANEOS)
+#if defined(ORELAX) && defined(EOS_ANEOS)
 /* Isentropic relaxation pin (port of SPH-EXA's relaxIsentropic): while the
  * relaxation window is active, hold each gas particle on its initial
  * isentrope. On the first call the reference entropy adopts the table entropy
@@ -167,7 +167,7 @@ else
  * reset to u(rho, s0) from the table, immediately before the pressure
  * evaluation in the density loop. Energy conservation is intentionally
  * violated -- relaxation runs only, never production. */
-void moonrelax_isentropic_pin(int i)
+void orelax_isentropic_pin(int i)
 {
     if(All.RelaxIsentropic == 0 || All.RelaxTimescale <= 0.0 || All.Time >= All.RelaxUntil)
         return;
@@ -189,7 +189,7 @@ void moonrelax_isentropic_pin(int i)
             SphP[i].RelaxEntropy0 = st.entropy;
         else if(!st.hasEntropy && located)
         {
-            printf("MOONRELAX: RelaxIsentropic requires an EOS table with entropy "
+            printf("ORELAX: RelaxIsentropic requires an EOS table with entropy "
                    "(task=%d particle=%d imat=%d)\n", ThisTask, i, imat);
             endrun(1);
         }
@@ -202,7 +202,7 @@ void moonrelax_isentropic_pin(int i)
     if(status == EOS_TABLE_UNKNOWN_MATERIAL || status == EOS_TABLE_ENTROPY_UNAVAILABLE ||
        status == EOS_TABLE_INVALID_TABLE_STATE)
     {
-        printf("MOONRELAX: isentropic pin failed: task=%d particle=%d imat=%d rho=%g s0=%g status=%s\n",
+        printf("ORELAX: isentropic pin failed: task=%d particle=%d imat=%d rho=%g s0=%g status=%s\n",
                ThisTask, i, imat, rho, (double)SphP[i].RelaxEntropy0, eos_table_status_string(status));
         endrun(1);
     }

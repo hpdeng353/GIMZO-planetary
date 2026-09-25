@@ -43,12 +43,12 @@ static long long *NumPartPerFile;
 int N_BH_idx;
 #endif
 
-#if defined(MOONRELAX) && defined(EOS_ANEOS) && defined(HAVE_HDF5)
+#if defined(ORELAX) && defined(EOS_ANEOS) && defined(HAVE_HDF5)
 /*! Optional per-particle anchor entropy (dataset PartType0/AnchorEntropy), written by
  *  makeplanet_planetg.py from the smooth WoMa (rho,u) state evaluated on the EOS table
  *  (mirrors sphexa's s0 IC field). When present, the isentropic pin uses it directly
  *  instead of adopting the noisy t=0 SPH density evaluation. Particles left as NaN
- *  still take the lazy-adoption fallback in moonrelax_isentropic_pin().
+ *  still take the lazy-adoption fallback in orelax_isentropic_pin().
  *  Single-file ICs only: with one file, the standard read maps each task to one
  *  contiguous hyperslab of the file, which this routine mirrors exactly. */
 static void read_anchor_entropy(char *fname)
@@ -83,7 +83,7 @@ static void read_anchor_entropy(char *fname)
     if(n_local != N_gas)
     {
         if(ThisTask == 0)
-            printf("MOONRELAX: AnchorEntropy present but particle split mismatch (%lld != %d); "
+            printf("ORELAX: AnchorEntropy present but particle split mismatch (%lld != %d); "
                    "ignoring it (multi-file ICs are not supported for AnchorEntropy)\n", n_local, N_gas);
         return;
     }
@@ -119,7 +119,7 @@ static void read_anchor_entropy(char *fname)
     MPI_Allreduce(MPI_IN_PLACE, &s0min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, &s0max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     if(ThisTask == 0)
-        printf("MOONRELAX: anchor entropy read from IC (AnchorEntropy block, WoMa-state s0): "
+        printf("ORELAX: anchor entropy read from IC (AnchorEntropy block, WoMa-state s0): "
                "code-units range %g .. %g\n", s0min, s0max);
 }
 #endif
@@ -318,12 +318,12 @@ void read_ic(char *fname)
     for(i = 0; i < N_gas; i++)
     {
         SphP[i].InternalEnergyPred = SphP[i].InternalEnergy = DMAX(All.MinEgySpec, SphP[i].InternalEnergy);
-#if defined(MOONRELAX) && defined(EOS_ANEOS)
+#if defined(ORELAX) && defined(EOS_ANEOS)
         SphP[i].RelaxEntropy0 = NAN; /* fallback: pin lazily adopts the entropy of the t=0 (rho,u) state */
 #endif
     }
 
-#if defined(MOONRELAX) && defined(EOS_ANEOS) && defined(HAVE_HDF5)
+#if defined(ORELAX) && defined(EOS_ANEOS) && defined(HAVE_HDF5)
     /* prefer the smooth WoMa-state anchor entropy if the IC carries it (overwrites the NaN fallback) */
     if(RestartFlag == 0)
         read_anchor_entropy(fname);

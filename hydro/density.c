@@ -1118,8 +1118,8 @@ void density(void)
                     }
                 }
 #endif
-#if defined(MOONRELAX) && defined(EOS_ANEOS)
-                moonrelax_isentropic_pin(i); /* fixed-entropy relaxation: reset u onto the initial isentrope before the pressure evaluation (no-op unless RelaxIsentropic=1) */
+#if defined(ORELAX) && defined(EOS_ANEOS)
+                orelax_isentropic_pin(i); /* fixed-entropy relaxation: reset u onto the initial isentrope before the pressure evaluation (no-op unless RelaxIsentropic=1) */
 #endif
                 SphP[i].Pressure = get_pressure(i);		// should account for density independent pressure
 

@@ -7,7 +7,7 @@ thinning) is unchanged; only the unit system and the output writer differ.
 
 Output format: GADGET-3/GIZMO HDF5 initial conditions with a Header group and
 PartType0 datasets Coordinates, Velocities, Masses, InternalEnergy, ParticleIDs,
-Materials, Temperature and SmoothingLength. planetg (moon.conf) reads the first
+Materials, Temperature and SmoothingLength. planetg (impact.conf) reads the first
 five plus Materials (READ_IMAT) and Temperature (EOS_CARRIES_TEMPERATURE);
 SmoothingLength is informational (enable READ_HSML to consume it).
 

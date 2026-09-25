@@ -19,5 +19,5 @@ CONFIG=conf.rti bash build_h100.sh
 mv GIZMO GIZMO_rti
 echo "=== GIZMO_rti built ==="
 
-bash build_h100.sh   # restore production Config.sh (moon.conf) + GIZMO
+bash build_h100.sh   # restore production Config.sh (impact.conf) + GIZMO
 echo "=== production GIZMO restored ==="

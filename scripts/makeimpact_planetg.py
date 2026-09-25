@@ -589,7 +589,7 @@ def main(argv=None):
     print(f"Wrote {output}")
     if params_path is not None:
         print(f"Wrote {params_path}")
-    print("Reminder: run with all four MOONRELAX parameters at 0; Materials indices map")
+    print("Reminder: run with all four ORELAX parameters at 0; Materials indices map")
     print("through EosTableMatIds (e.g. '62,63' = mantle,core) and must match the inputs.")
     return 0
 
