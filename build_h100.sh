@@ -2,7 +2,7 @@
 # Build planetg (GIZMO) on the H100 cluster using all available CPU cores.
 #
 # Usage:
-#   bash build_h100.sh                 # build with noon1.conf
+#   bash build_h100.sh                 # build with moon.conf
 #   CONFIG=moon1.conf bash build_h100.sh
 #   JOBS=32 bash build_h100.sh         # override parallel jobs (default: nproc)
 #
@@ -56,7 +56,7 @@ fi
 
 export SYSTYPE=h100 HDF5_ROOT GSL_ROOT
 
-config=${CONFIG:-noon1.conf}
+config=${CONFIG:-moon.conf}
 if [[ ! -f "${config}" ]]; then
     echo "error: config file '${config}' not found" >&2
     exit 1

@@ -139,7 +139,7 @@ four parameters (all zero = disabled, e.g. for the impact run):
 - Compile-time flags: `EOS_ANEOS` is the single master switch. It
   auto-enables `EOS_TABULATED`, `EOS_CARRIES_TEMPERATURE`,
   `EOS_CARRIES_ENTROPY`, `MOON`, `MOONRELAX`, `READ_IMAT`, `CLIPPING` and
-  `PREVENT_PARTICLE_MERGE_SPLIT` (see `eos/eos.h`), so `noon1.conf` only
+  `PREVENT_PARTICLE_MERGE_SPLIT` (see `eos/eos.h`), so `moon.conf` only
   needs `EOS_ANEOS` plus the hydro/kernel/I/O choices.
 
 Implementation: `moonrelax_modify_kick()` in `run.c`, called from
