@@ -21,12 +21,12 @@ ROOT=/home/hpdeng/planetg
 ICS=$ROOT/runs/remix/ics
 
 case "$CASE" in
-  square_em) BIN=GIZMO_square; IC=$ICS/square_equal_mass_gizmo.h5;     BASE=square.params ;;
-  square_es) BIN=GIZMO_square; IC=$ICS/square_equal_spacing_gizmo.h5;  BASE=square.params ;;
-  khi_em)    BIN=GIZMO_khi;    IC=$ICS/khi_iron_rock_gizmo.h5;         BASE=khi.params ;;
-  khi_es)    BIN=GIZMO_khi;    IC=$ICS/khi_iron_rock_es_gizmo.h5;      BASE=khi.params ;;
-  rti_em)    BIN=GIZMO_rti;    IC=$ICS/rti_iron_rock_em_gizmo.h5;      BASE=rti.params ;;
-  rti_es)    BIN=GIZMO_rti;    IC=$ICS/rti_iron_rock_es_gizmo.h5;      BASE=rti.params ;;
+  square_em) BIN=GIZMO_square; IC=$ICS/square_equal_mass_gizmo;     BASE=square.params ;;
+  square_es) BIN=GIZMO_square; IC=$ICS/square_equal_spacing_gizmo;  BASE=square.params ;;
+  khi_em)    BIN=GIZMO_khi;    IC=$ICS/khi_iron_rock_gizmo;         BASE=khi.params ;;
+  khi_es)    BIN=GIZMO_khi;    IC=$ICS/khi_iron_rock_es_gizmo;      BASE=khi.params ;;
+  rti_em)    BIN=GIZMO_rti;    IC=$ICS/rti_iron_rock_em_gizmo;      BASE=rti.params ;;
+  rti_es)    BIN=GIZMO_rti;    IC=$ICS/rti_iron_rock_es_gizmo;      BASE=rti.params ;;
   *) echo "unknown CASE $CASE" >&2; exit 2 ;;
 esac
 

@@ -63,19 +63,7 @@
 
 
 
-    /*
-#ifdef AGGRESSIVE_SLOPE_LIMITERS
-    wt_i=V_i; wt_j=V_j;
-#else
-#ifdef COOLING
-    //wt_i=wt_j = 2.*V_i*V_j / (V_i + V_j); // more conservatively, could use DMIN(V_i,V_j), but that is less accurate
-    if((fabs(V_i-V_j)/DMIN(V_i,V_j))/NUMDIMS > 1.25) {wt_i=wt_j=2.*V_i*V_j/(V_i+V_j);} else {wt_i=V_i; wt_j=V_j;}
-#else
-    //wt_i=wt_j = (V_i*PPP[j].Hsml + V_j*local.Hsml) / (local.Hsml+PPP[j].Hsml); // should these be H, or be -effective sizes- //
-    if((fabs(V_i-V_j)/DMIN(V_i,V_j))/NUMDIMS > 1.50) {wt_i=wt_j=(V_i*PPP[j].Hsml+V_j*local.Hsml)/(local.Hsml+PPP[j].Hsml);} else {wt_i=V_i; wt_j=V_j;}
-#endif
-#endif
-*/
+
     /* the effective gradient matrix is well-conditioned: we can safely use the consistent EOM */
     // note the 'default' formulation from Lanson and Vila takes wt_i=V_i, wt_j=V_j; but this assumes negligible variation in h between particles;
     //      it is more accurate to use a centered wt (centered face area), which we get by linear interpolation //

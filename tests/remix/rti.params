@@ -36,6 +36,7 @@ ErrTolIntAccuracy                  0.002
 CourantFac                         0.1
 MaxSizeTimestep                    0.002
 MinSizeTimestep                    1e-9
+TreeDomainUpdateFrequency          0.005
 DesNumNgb                          80
 MaxNumNgbDeviation                 0.1
 ArtBulkViscConst                   1
