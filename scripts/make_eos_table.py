@@ -8,7 +8,11 @@ the atomic rename). See docs/impact_pipeline.md section 0 for the provenance
 checksums of the tables used by this project.
 
 Usage:
-    python scripts/make_eos_table.py         --forsterite MANEOStable_fosterite.in --iron MANEOStable_iron.in         -o impact-out/eos/rock_planet_aneos_62_63.spheos
+    python scripts/make_eos_table.py
+
+The default inputs are tracked under eos/eoslib/ and the default output is
+impact-out/eos/rock_planet_aneos_62_63.spheos. Explicit paths remain available
+for validating another set of source tables.
 """
 
 from __future__ import annotations
@@ -27,6 +31,10 @@ MAGIC = b"SPXEOST1"
 FORMAT_VERSION = 3
 ENDIAN_MARKER = 0x01020304
 MATERIALS = ((62, "forsterite"), (63, "iron"))
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_FORSTERITE = REPOSITORY_ROOT / "eos" / "eoslib" / "MANEOStable_fosterite.in"
+DEFAULT_IRON = REPOSITORY_ROOT / "eos" / "eoslib" / "MANEOStable_iron.in"
+DEFAULT_OUTPUT = REPOSITORY_ROOT / "impact-out" / "eos" / "rock_planet_aneos_62_63.spheos"
 
 
 def fnv1a64(data: bytes) -> int:
@@ -142,9 +150,25 @@ def validate_spheos(path: Path, expected: list[tuple[int, int, int]]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--forsterite", required=True, type=Path, help="EOSlib MANEOStable forsterite input")
-    parser.add_argument("--iron", required=True, type=Path, help="EOSlib MANEOStable iron input")
-    parser.add_argument("-o", "--output", required=True, type=Path, help="output .spheos table")
+    parser.add_argument(
+        "--forsterite",
+        type=Path,
+        default=DEFAULT_FORSTERITE,
+        help=f"EOSlib MANEOStable forsterite input (default: {DEFAULT_FORSTERITE})",
+    )
+    parser.add_argument(
+        "--iron",
+        type=Path,
+        default=DEFAULT_IRON,
+        help=f"EOSlib MANEOStable iron input (default: {DEFAULT_IRON})",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help=f"output .spheos table (default: {DEFAULT_OUTPUT})",
+    )
     return parser.parse_args()
 
 

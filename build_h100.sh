@@ -3,7 +3,7 @@
 #
 # Usage:
 #   bash build_h100.sh                 # build with impact.conf
-#   CONFIG=moon1.conf bash build_h100.sh
+#   CONFIG=conf.khi bash build_h100.sh  # build another tracked configuration
 #   JOBS=32 bash build_h100.sh         # override parallel jobs (default: nproc)
 #
 # The script loads the GNU/OpenMPI/HDF5(/GSL) modules, selects SYSTYPE="h100"

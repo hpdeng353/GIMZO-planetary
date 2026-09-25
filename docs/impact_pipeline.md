@@ -13,13 +13,13 @@ are Python scripts in `scripts/`; compile and run on the cluster (H100:
   ranks on a node through mmap and the page cache. The unaligned density and
   energy axes are copied privately, about 34.3 MiB per rank for this table.
 
-### Generating the EOS table (the `.spheos` file is not in the git repo)
+### Generating the EOS table
 
 The runtime table (103 MB) exceeds git hosting limits and is therefore not
-tracked. Regenerate it deterministically from the EOSlib M-ANEOS tables
-(`MANEOStable_*.in`, the binary tables distributed with M-ANEOS / EOSlib —
-they are not part of this repository either). EOSlib is public on GitHub:
-https://github.com/Halbarath/EOSlib.git
+tracked. The two source M-ANEOS tables are tracked in `eos/eoslib/`, allowing
+a fresh clone to regenerate the runtime table deterministically without a
+separate data download. Their provenance and redistribution notes are in
+`eos/eoslib/README.md`.
 
 When using these EOS tables, please cite:
 
@@ -28,12 +28,19 @@ When using these EOS tables, please cite:
   licensing (Version v.1.0.1) [Computer software]. Zenodo.
   https://doi.org/10.5281/zenodo.4704950
 
-Build the runtime table with:
+From the repository root, build the runtime table with:
+
+```bash
+python scripts/make_eos_table.py
+```
+
+The equivalent explicit command is:
 
 ```bash
 python scripts/make_eos_table.py \
-    --forsterite MANEOStable_fosterite.in --iron MANEOStable_iron.in \
-    -o impact-out/eos/rock_planet_aneos_62_63.spheos
+    --forsterite eos/eoslib/MANEOStable_fosterite.in \
+    --iron eos/eoslib/MANEOStable_iron.in \
+    --output impact-out/eos/rock_planet_aneos_62_63.spheos
 ```
 
 The build is byte-deterministic. Verify your inputs and output against the

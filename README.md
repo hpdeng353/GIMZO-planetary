@@ -25,19 +25,19 @@ Documentation:
   building, relaxation, impact setup, QC scripts.
 - `impact.conf` — annotated production configuration.
 
-Build (H100 cluster): `bash build_h100.sh` (SYSTYPE=h100; needs MPI, HDF5,
-GSL, FFTW as described below). Binary EOS tables (`*.spheos`) are not
-tracked in git; regenerate them deterministically from EOSlib M-ANEOS tables
-with `scripts/make_eos_table.py` and verify the result against the provenance
-checksums in `docs/impact_pipeline.md` section 0.
+Build (H100 cluster): `bash build_h100.sh` (SYSTYPE=h100; needs MPI, HDF5 and
+GSL). Binary runtime EOS tables (`*.spheos`) are not tracked in git. The two
+source M-ANEOS tables are tracked under `eos/eoslib/`, so a fresh clone can
+rebuild the exact production table with `python scripts/make_eos_table.py`.
+Verify the result against the provenance checksums in
+`docs/impact_pipeline.md` section 0.
 
 All upstream GIZMO copyright notices and attribution apply; cite Hopkins 2015
 (arXiv:1409.7395) and Springel (2005) as below, plus this fork's impact
-pipeline where used. The EOS tables are built from the public EOSlib
-M-ANEOS tables (https://github.com/Halbarath/EOSlib.git); when using them,
-cite Deng et al. 2019 and Thomas Meier, & Christian
-Reinhardt. (2021). Halbarath/EOSlib: fixed the licensing (Version v.1.0.1)
-[Computer software]. Zenodo. https://doi.org/10.5281/zenodo.4704950
+pipeline where used. The EOS tables are built from the public M-ANEOS tables
+described in `eos/eoslib/README.md`. Retain that provenance information when
+redistributing the source tables and cite the underlying Stewart releases and
+Deng et al. 2019 as described there.
 
 ---
 

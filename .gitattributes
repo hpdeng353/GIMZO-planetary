@@ -7,5 +7,7 @@ Makefile* text eol=lf
 *.c text eol=lf
 *.h text eol=lf
 *.spheos binary
+eos/eoslib/MANEOStable_*.in binary
 *.png binary
 *.h5 binary
+*.hdf5 binary
